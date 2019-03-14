@@ -410,6 +410,7 @@ CaloTruthAccumulator::CaloTruthAccumulator(const edm::ParameterSet& config,
 
 void CaloTruthAccumulator::beginLuminosityBlock(edm::LuminosityBlock const& iLumiBlock,
                                                          const edm::EventSetup& iSetup) {
+  return;
   edm::ESHandle<CaloGeometry> geom;
   iSetup.get<CaloGeometryRecord>().get(geom);
   const HGCalGeometry *eegeom = nullptr, *fhgeom = nullptr, *bhgeomnew = nullptr;
@@ -682,25 +683,25 @@ void CaloTruthAccumulator::fillSimHits(
     for (auto const& simHit : *hSimHits) {
       DetId id(0);
       const uint32_t simId = simHit.id();
-      if (geometryType_==1) {
-        //no test numbering in new geometry
-        id = simId;
-      }
-      else if (isHcal) {
-        HcalDetId hid = HcalHitRelabeller::relabel(simId, hcddd_);
-        if (hid.subdet() == HcalEndcap) id = hid;
-      } else {
-        int subdet, layer, cell, sec, subsec, zp;
-        HGCalTestNumbering::unpackHexagonIndex(simId, subdet, zp, layer, sec, subsec, cell);
-        const HGCalDDDConstants* ddd = hgddd_[subdet - 3];
-        std::pair<int, int> recoLayerCell =
-            ddd->simToReco(cell, layer, sec, hgtopo_[subdet - 3]->detectorType());
-        cell = recoLayerCell.first;
-        layer = recoLayerCell.second;
-        // skip simhits with bad barcodes or non-existant layers
-        if (layer == -1 || simHit.geantTrackId() == 0) continue;
-        id = HGCalDetId((ForwardSubdetector)subdet, zp, layer, subsec, sec, cell);
-      }
+//      if (geometryType_==1) {
+//        //no test numbering in new geometry
+//        id = simId;
+//      }
+//      else if (isHcal) {
+//        HcalDetId hid = HcalHitRelabeller::relabel(simId, hcddd_);
+//        if (hid.subdet() == HcalEndcap) id = hid;
+//      } else {
+//        int subdet, layer, cell, sec, subsec, zp;
+//        HGCalTestNumbering::unpackHexagonIndex(simId, subdet, zp, layer, sec, subsec, cell);
+//        const HGCalDDDConstants* ddd = hgddd_[subdet - 3];
+//        std::pair<int, int> recoLayerCell =
+//            ddd->simToReco(cell, layer, sec, hgtopo_[subdet - 3]->detectorType());
+//        cell = recoLayerCell.first;
+//        layer = recoLayerCell.second;
+//        // skip simhits with bad barcodes or non-existant layers
+//        if (layer == -1 || simHit.geantTrackId() == 0) continue;
+//        id = HGCalDetId((ForwardSubdetector)subdet, zp, layer, subsec, sec, cell);
+//      }
 
       if (DetId(0) == id) continue;
 
