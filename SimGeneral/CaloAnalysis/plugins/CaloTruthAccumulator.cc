@@ -681,7 +681,7 @@ void CaloTruthAccumulator::fillSimHits(
     const bool isHcal = (collectionTag.instance().find("HcalHits") != std::string::npos);
     event.getByLabel(collectionTag, hSimHits);
     for (auto const& simHit : *hSimHits) {
-      DetId id(0);
+      DetId id = simHit.id();
       const uint32_t simId = simHit.id();
 //      if (geometryType_==1) {
 //        //no test numbering in new geometry
