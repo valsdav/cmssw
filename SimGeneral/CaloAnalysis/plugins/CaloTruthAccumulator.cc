@@ -523,7 +523,7 @@ void CaloTruthAccumulator::finalizeEvent(edm::Event& event, edm::EventSetup cons
   for (unsigned i = 0; i < output_.pCaloParticles->size(); ++i) {
     auto& cp = (*output_.pCaloParticles)[i];
     auto& g4Tracks_tmp = cp.g4Tracks();
-    edm::Ref<std::vector<reco::GenParticle> > ref_gen(hGenParticles, g4Tracks_tmp[0].genpartIndex());
+    edm::Ref<std::vector<reco::GenParticle> > ref_gen(hGenParticles, g4Tracks_tmp[0].genpartIndex()-1);
     cp.addGenParticle(ref_gen);
     for (unsigned j = m_caloParticles.sc_start_[i]; j < m_caloParticles.sc_stop_[i]; ++j) {
       edm::Ref<SimClusterCollection> ref(scHandle, j);
