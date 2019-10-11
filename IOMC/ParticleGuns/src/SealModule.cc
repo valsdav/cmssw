@@ -19,6 +19,7 @@
 #include "IOMC/ParticleGuns/interface/RandomtXiGunProducer.h"
 #include "IOMC/ParticleGuns/interface/FlatRandomPtAndDxyGunProducer.h"
 #include "IOMC/ParticleGuns/interface/RandomMultiParticlePGunProducer.h"
+#include "IOMC/ParticleGuns/interface/RandomXiThetaGunProducer.h"
 #include "IOMC/ParticleGuns/interface/CloseByParticleGunProducer.h"
 #include "IOMC/ParticleGuns/interface/CloseByParticleFlatEtGunProducer.h"
 #include "IOMC/ParticleGuns/interface/ManyParticleFlatEtGunProducer.h"
