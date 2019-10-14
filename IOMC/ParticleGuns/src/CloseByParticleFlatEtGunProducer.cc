@@ -96,7 +96,7 @@ void CloseByParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
 
      // if EE, generate one particle in EE+ and next particle in EE-
      if(fZMin==fZMax){
-       if(ip % 2 == 1) fZ*=-1;
+       fZ*=-1; // change at every round
      }
 
      //generation flat in Et
