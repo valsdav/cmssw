@@ -7,6 +7,8 @@
 
 #include "DataFormats/Math/interface/Vector3D.h"
 
+#include <TMath.h>
+
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
@@ -29,8 +31,6 @@ CloseByParticleFlatEtGunProducer::CloseByParticleFlatEtGunProducer(const Paramet
   ParameterSet pgun_params =
     pset.getParameter<ParameterSet>("PGunParameters") ;
 
-  //fEnMax = pgun_params.getParameter<double>("EnMax");
-  //fEnMin = pgun_params.getParameter<double>("EnMin");
   fPtMin = pgun_params.getParameter<double>("MinPt");
   fPtMax = pgun_params.getParameter<double>("MaxPt");
   fRMax = pgun_params.getParameter<double>("RMax");
@@ -77,16 +77,10 @@ void CloseByParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
      int partIdx = CLHEP::RandFlat::shoot(engine, 0, fPartIDs.size());
      particles.push_back(fPartIDs[partIdx]);
      }
-   //in the case of the generation in the endcap (i.e at fixed Z), we want to generate randomly between EEP and EEM
-   double rdm = 1;
-   if(fZMin==fZMax){
-      rdm = (std::rand() & 2) - 1;
-      if(rdm==0) rdm = -1;
-   }
 
    double phi = CLHEP::RandFlat::shoot(engine, fPhiMin, fPhiMax);
    double fR = CLHEP::RandFlat::shoot(engine,fRMin,fRMax);
-   double fZ = CLHEP::RandFlat::shoot(engine,rdm*fZMin,rdm*fZMax);
+   double fZ = CLHEP::RandFlat::shoot(engine,fZMin,fZMax); // EE+ or all EB
    double tmpPhi = phi;
    double tmpR = fR;
 
@@ -98,20 +92,18 @@ void CloseByParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
         phi = CLHEP::RandFlat::shoot(engine, tmpPhi-fDelta/fR, tmpPhi+fDelta/fR);
        }
      else
-       phi += fDelta/fR;
- 
-     //generation flat in Energy:
-     //double fEn = CLHEP::RandFlat::shoot(engine,fEnMin,fEnMax);
-     //generation flat in Et:
+       phi += 2*TMath::Pi()/(float)numParticles; 
+
+     // if EE, generate one particle in EE+ and next particle in EE-
+     if(fZMin==fZMax){
+       if(ip % 2 == 1) fZ*=-1;
+     }
+
+     //generation flat in Et
      double pt = CLHEP::RandFlat::shoot(engine,fPtMin,fPtMax);
      int PartID = particles[ip] ;
      const HepPDT::ParticleData *PData = fPDGTable->particle(HepPDT::ParticleID(abs(PartID))) ;
      double mass   = PData->mass().value() ;
-     //double mom    = sqrt(fEn*fEn-mass*mass);
-     //double px     = 0.;
-     //double py     = 0.;
-     //double pz     = mom;
-     //double energy = fEn;
      double theta  = acos(fZ/sqrt(fR*fR + fZ*fZ)) ;
      double mom    = pt/sin(theta) ;
      double px     = pt*cos(phi) ;
