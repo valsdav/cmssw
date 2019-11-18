@@ -64,12 +64,14 @@ void ManyParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
    
    HepMC::GenVertex* Vtx = new HepMC::GenVertex(HepMC::FourVector(0.,0.,0.));
 
-   for (unsigned int ip=0; ip<vPartIDs.size(); ++ip)
+   for (unsigned int ip=0; ip<vPtMin.size(); ++ip)
    {
+     double rnd = CLHEP::RandFlat::shoot(engine,-0.5,(double)(vPartIDs.size()-0.5));
+     int partID_index = (int)round(rnd);
      double phi = CLHEP::RandFlat::shoot(engine, vPhiMin.at(ip), vPhiMax.at(ip));
      double eta = CLHEP::RandFlat::shoot(engine, vEtaMin.at(ip), vEtaMax.at(ip));
      double pt = CLHEP::RandFlat::shoot(engine,vPtMin.at(ip),vPtMax.at(ip));
-     const HepPDT::ParticleData *PData = fPDGTable->particle(HepPDT::ParticleID(abs(vPartIDs.at(ip)))) ;
+     const HepPDT::ParticleData *PData = fPDGTable->particle(HepPDT::ParticleID(vPartIDs.at(partID_index))) ;
      double mass   = PData->mass().value() ;
      double theta  = 2.*atan(exp(-eta)) ;
      double mom    = pt/sin(theta) ;
@@ -79,7 +81,7 @@ void ManyParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
      double energy2= mom*mom + mass*mass ;
      double energy = sqrt(energy2) ; 
      HepMC::FourVector p(px,py,pz,energy) ;
-     HepMC::GenParticle* Part = new HepMC::GenParticle(p,vPartIDs.at(ip),1);
+     HepMC::GenParticle* Part = new HepMC::GenParticle(p,vPartIDs.at(partID_index),1);
      Part->suggest_barcode( barcode ) ;
      barcode++ ;
      Vtx->add_particle_out(Part);
