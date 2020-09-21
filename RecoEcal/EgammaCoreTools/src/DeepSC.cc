@@ -8,46 +8,42 @@ namespace reco {
   
   DeepSC::DeepSC()
   {
-     session_NN_Barrel_ = tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath("RecoEcal/EgammaCoreTools/data/deepSC_model_v14_finalscore_v2_EB.pb").fullPath().c_str()));
-     session_NN_Endcap_ = tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath("RecoEcal/EgammaCoreTools/data/deepSC_model_v14_finalscore_v6_EE.pb").fullPath().c_str()));
-     x_mean_Barrel_ = std::vector<double>({.60707421e-03, -1.73794814e-02,  0.00000000e+00,  3.56214761e+01,
-2.49357538e+01,  3.11332870e-04,  1.98443393e-06,  7.73690247e-01,
-5.41722921e-01,  1.00503862e+00,  8.74048387e-03,  2.70028418e-07,
-1.15299516e-02,  4.90702664e-01,  4.67579586e+00,  6.67593469e-03,
-8.21538199e-03,  1.62043356e+00,  7.03778100e-03,  1.82998814e-07,
-7.76987369e-03,  7.07775815e-01,  1.41931161e+00,  2.88880743e-03,
-2.77690441e-03});
-     x_std_Barrel_ = std::vector<double>({8.70911527e-01, 1.80781524e+00, 1.00000000e+00, 4.43159827e+01,
-2.97445738e+01, 1.09634038e-01, 3.31674900e-01, 1.93701364e+00,
-1.23390516e+00, 8.53776838e-02, 4.78313451e-03, 6.11027544e-05,
-5.66862122e-03, 4.01735208e-01, 5.49507876e+00, 2.94984302e-03,
-4.01382913e-03, 6.81211508e+00, 8.17118200e-03, 1.08280997e-04,
-8.54969802e-03, 1.42626514e+00, 1.70514757e+00, 2.06380546e-03,
-2.74318441e-03});
-     x_mean_Endcap_ = std::vector<double>({3.56700000e-03, -5.61881480e-04,  5.42432152e-03,  1.23144162e+02,
-2.80286361e+01, -3.77895168e-03, -2.52080067e-04,  2.83572379e+00,
-6.40789285e-01,  1.01572938e+00,  2.75843990e-02, -1.78424510e-05,
-3.32103293e-02,  4.89525266e-01,  6.47583705e+00,  1.50177114e-02,
-1.67321469e-02,  2.79373242e+00,  3.08011135e-02,  6.28599546e-05,
-3.31705605e-02,  2.61118938e-01,  1.72031559e+00,  4.72343147e-03,
-3.88800860e-03});
-     x_std_Endcap_ = std::vector<double>({2.12599275e+00, 1.81089171e+00, 9.99985288e-01, 1.46843692e+02,
-3.01028994e+01, 1.12075884e-01, 3.27203361e-01, 3.59426937e+00,
-9.23646139e-01, 1.90638817e-01, 1.25780060e-02, 3.53072883e-04,
-1.50233813e-02, 4.06099128e-01, 6.06635914e+00, 8.35589745e-03,
-1.01933224e-02, 1.01608434e+01, 2.27313472e-02, 5.72635095e-04,
-2.39377164e-02, 3.07407340e+00, 2.33897667e+00, 7.15246184e-03,
-8.16679482e-03}); 
-     NNinput_string_Barrel_ = std::string("dense_12_input:0");
-     NNoutput_string_Barrel_ = std::string("dense_15/Sigmoid:0");
-     NNinput_string_Endcap_ = std::string("dense_9_input:0");
-     NNoutput_string_Endcap_ = std::string("dense_12/Sigmoid:0");
+     session_NN_Barrel_ = tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath("RecoEcal/EgammaCoreTools/data/deepSC_model_v17_joindet_elegamma_EBEE.pb").fullPath().c_str()));
+     session_NN_Endcap_ = tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath("RecoEcal/EgammaCoreTools/data/deepSC_model_v17_joindet_elegamma_EBEE.pb").fullPath().c_str()));
+     x_mean_Barrel_ = std::vector<double>({6.84241156e-03, 1.62242679e-03, 5.81495577e+01, 2.57215845e+01,
+-7.09402501e-04, -1.27142875e-04, 1.30375508e+00, 5.67249500e-01,
+1.00772582e+00, 1.35803461e-02, -4.29317013e-06, 1.71072024e-02,
+4.90466869e-01, 5.10511982e+00, 8.82101138e-03, 1.04095965e-02,
+1.92096066e+00, 1.31476120e-02, 1.62948213e-05, 1.42948806e-02,
+5.92920497e-01, 1.49597644e+00, 3.36213188e-03, 3.06446267e-03});
+     x_std_Barrel_ = std::vector<double>({1.31333380e+00, 5.06988411e-01, 9.21157365e+01, 2.98580765e+01,
+1.10279784e-01, 3.30488055e-01, 2.62605247e+00, 1.16284769e+00,
+1.17047757e-01, 1.11969442e-02, 1.86572967e-04, 1.31036359e-02,
+4.01511744e-01, 5.67007350e+00, 6.14304203e-03, 7.24808860e-03,
+7.81094814e+00, 1.70392176e-02, 3.05995567e-04, 1.80176053e-02,
+1.99316624e+00, 1.88845046e+00, 4.12315715e-03, 4.79639033e-03});
+     x_mean_Endcap_ = std::vector<double>({6.84241156e-03, 1.62242679e-03, 5.81495577e+01, 2.57215845e+01,
+-7.09402501e-04, -1.27142875e-04, 1.30375508e+00, 5.67249500e-01,
+1.00772582e+00, 1.35803461e-02, -4.29317013e-06, 1.71072024e-02,
+4.90466869e-01, 5.10511982e+00, 8.82101138e-03, 1.04095965e-02,
+1.92096066e+00, 1.31476120e-02, 1.62948213e-05, 1.42948806e-02,
+5.92920497e-01, 1.49597644e+00, 3.36213188e-03, 3.06446267e-03});
+     x_std_Endcap_ = std::vector<double>({1.31333380e+00, 5.06988411e-01, 9.21157365e+01, 2.98580765e+01,
+1.10279784e-01, 3.30488055e-01, 2.62605247e+00, 1.16284769e+00,
+1.17047757e-01, 1.11969442e-02, 1.86572967e-04, 1.31036359e-02,
+4.01511744e-01, 5.67007350e+00, 6.14304203e-03, 7.24808860e-03,
+7.81094814e+00, 1.70392176e-02, 3.05995567e-04, 1.80176053e-02,
+1.99316624e+00, 1.88845046e+00, 4.12315715e-03, 4.79639033e-03}); 
+     NNinput_string_Barrel_ = std::string("dense_4_input:0");
+     NNoutput_string_Barrel_ = std::string("dense_6/Sigmoid:0");
+     NNinput_string_Endcap_ = std::string("dense_4_input:0");
+     NNoutput_string_Endcap_ = std::string("dense_6/Sigmoid:0");
      NNWPs_Barrel_ = std::vector<double>({0.75,0.85,0.85,0.85,0.85,0.85,0.85,0.85,0.85,0.85});
-     NNWPs_Endcap_ = std::vector<double>({0.75,0.90,0.85,0.85,0.85,0.80,0.85,0.85,0.95,0.90});  
-     etaWindows_Barrel_ = std::vector<double>({0.2,0.,0.}); // p0 + p1*seedEta + p2*seedEta*dEta
-     phiWindows_Barrel_ = std::vector<double>({0.6,0.,0.}); // p0 + p1*seedEta + p2*seedEta*dEta   
-     etaWindows_Endcap_ = std::vector<double>({0.2,0.,0.}); // p0 + p1*seedEta + p2*seedEta*dEta
-     phiWindows_Endcap_ = std::vector<double>({0.6,0.,0.}); // p0 + p1*seedEta + p2*seedEta*dEta
+     NNWPs_Endcap_ = std::vector<double>({0.75,0.85,0.85,0.85,0.85,0.85,0.85,0.85,0.85,0.85});  
+     etaWindows_Barrel_ = std::vector<double>({0.2,0.,0.}); // p0 + p1*seedEta + p2*seedEta*seedEta
+     phiWindows_Barrel_ = std::vector<double>({0.6,0.,0.}); // p0 + p1*seedEta + p2*seedEta*seedEta   
+     etaWindows_Endcap_ = std::vector<double>({0.2,0.,0.}); // p0 + p1*seedEta + p2*seedEta*seedEta
+     phiWindows_Endcap_ = std::vector<double>({0.6,0.,0.}); // p0 + p1*seedEta + p2*seedEta*seedEta
   }
   
   DeepSC::~DeepSC()
