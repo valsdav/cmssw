@@ -1,4 +1,5 @@
 #include "RecoEcal/EgammaClusterAlgos/interface/PFECALSuperClusterAlgo.h"
+#include "RecoEcal/EgammaCoreTools/interface/EcalClustersGraph.h"
 #include "RecoParticleFlow/PFClusterTools/interface/PFClusterWidthAlgo.h"
 #include "RecoParticleFlow/PFClusterTools/interface/LinkByRecHit.h"
 #include "DataFormats/ParticleFlowReco/interface/PFLayer.h"
@@ -334,8 +335,16 @@ void PFECALSuperClusterAlgo::
 buildAllSuperClusters(CalibClusterPtrVector& clusters,
 		      double seedthresh) {
   auto seedable = std::bind(isSeed, _1, seedthresh, threshIsET_);
+
+
   // make sure only seeds appear at the front of the list of clusters
-  std::stable_partition(clusters.begin(),clusters.end(),seedable);
+  auto last_seed = std::stable_partition(clusters.begin(),clusters.end(),seedable);
+
+  //TEST EcalClustersGraph
+
+  EcalClustersGraph cls_graph (clusters, std::distance(clusters.begin(), last_seed));
+  cls_graph.initWindows(0.3, 0.7);
+
   // in each iteration we are working on a list that is already sorted
   // in the cluster energy and remains so through each iteration
   // NB: since clusters is sorted in loadClusters any_of has O(1)
