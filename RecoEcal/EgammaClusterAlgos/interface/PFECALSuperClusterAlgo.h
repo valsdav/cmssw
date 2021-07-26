@@ -28,6 +28,9 @@
 
 #include "RecoEcal/EgammaClusterAlgos/interface/SCEnergyCorrectorSemiParm.h"
 #include "RecoEcal/EgammaCoreTools/interface/DeepSC.h"
+#include "RecoEcal/EgammaCoreTools/interface/GraphMatrix.h"
+#include "RecoEcal/EgammaCoreTools/interface/EcalClustersGraph.h"
+#include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -63,21 +66,6 @@ public:
   enum clustering_type{kBOX=1, kMustache=2, kDeepSC=3};
   enum energy_weight { kRaw, kCalibratedNoPS, kCalibratedTotal };
 
-  // simple class for associating calibrated energies
-  class CalibratedPFCluster {
-  public:
-    CalibratedPFCluster(const edm::Ptr<reco::PFCluster>& p) : cluptr(p) {}
-
-    double energy() const { return cluptr->correctedEnergy(); }
-    double energy_nocalib() const { return cluptr->energy(); }
-    double eta() const { return cluptr->positionREP().eta(); }
-    double phi() const { return cluptr->positionREP().phi(); }
-
-    edm::Ptr<reco::PFCluster> the_ptr() const { return cluptr; }
-
-  private:
-    edm::Ptr<reco::PFCluster> cluptr;
-  };
   typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
   typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
 
@@ -189,7 +177,7 @@ private:
   bool applyCrackCorrections_;
   bool threshIsET_;
 
-  reco::DeepSC* deepSuperCluster_; 
+  EcalClustersGraph* ecalClusterGraph_;
 
   // OOT photons
   bool isOOTCollection_;

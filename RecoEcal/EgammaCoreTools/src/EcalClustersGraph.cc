@@ -8,14 +8,21 @@
 using namespace std;
 using namespace reco;
 
-EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters, int nSeeds, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE, const std::vector<double>* meanVals, const std::vector<double>* stdVals):
-     clusters_(clusters), nSeeds_(nSeeds), topology_(topology), ebGeom_(ebGeom), eeGeom_(eeGeom), recHitsEB_(recHitsEB), recHitsEE_(recHitsEE), meanVals_(meanVals), stdVals_(stdVals){
-       nCls_ = clusters_.size();
-       inWindows_ = ublas::matrix<int> (nSeeds_, nCls_);
-       scoreMatrix_ = ublas::matrix<int> (nSeeds_, nCls_);
+typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
+typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
 
+EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters, int nSeeds, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE): clusters_(clusters), nSeeds_(nSeeds), topology_(topology), ebGeom_(ebGeom), eeGeom_(eeGeom), recHitsEB_(recHitsEB), recHitsEE_(recHitsEE) {
+
+       nCls_ = clusters_.size();
+       inWindows_ = GraphMatrix<int>(nSeeds_, nCls_);
+       scoreMatrix_ = GraphMatrix<double>(nSeeds_, nCls_);
+       clusterMatrix_ = GraphMatrix<double>(nSeeds_, nCls_);
+       meanVals_ = std::vector<double>({0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.});
+       stdVals_ = std::vector<double>({1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.});
+       Rnd = new TRandom();
+ 
        //test
-       std::cout << "ClustersGraph created. Nseeds " << nSeeds_ << ", nClusters " << nCls_ << endl;
+       //std::cout << "ClustersGraph created. Nseeds " << nSeeds_ << ", nClusters " << nCls_ << endl;
 }
 
 std::vector<int> EcalClustersGraph::clusterPosition(const CaloCluster* cluster)
@@ -114,7 +121,7 @@ void EcalClustersGraph::initWindows(){
         std::vector<int> seedLocal = clusterPosition((*clusters_.at(is)).the_ptr().get());
         double seed_eta = clusters_.at(is)->eta();
         double seed_phi = clusters_.at(is)->phi();
-        inWindows_(is,is) = 1;
+        inWindows_.Set(is,is,1);
         std::vector<double> width = dynamicWindow(seed_eta);
 
         for (int icl=is+1 ; icl < nCls_; icl++){
@@ -126,55 +133,49 @@ void EcalClustersGraph::initWindows(){
            
             int isIn=0;
             if(seedLocal[2]==clusterLocal[2] && deta>=width[0] && deta<=width[1] && fabs(dphi)<=width[2]) isIn = 1; 
-            inWindows_(is, icl) = isIn;
+
+            inWindows_.Set(is,icl,isIn);
             //Save also symmetric part of the adj matrix
-            if (icl < nSeeds_) inWindows_(icl,is) = isIn;
+            if (icl < nSeeds_) inWindows_.Set(icl,is,isIn);
         }
     }
-
-    //test
-    /*for (int is=0; is < nSeeds_; is++){
-        for (int ic=0; ic < nCls_; ic++){
-            cout << inWindows_(is,ic) << " ";
-        }
-        cout << endl;
-    }*/
-
 }
 
 void EcalClustersGraph::clearWindows()
 {
-   inWindows_.clear();
+   inWindows_.Clear();
+   scoreMatrix_.Clear();
+   clusterMatrix_.Clear();
 }
 
 void EcalClustersGraph::computeVariables(const CaloCluster* seed, const CaloCluster* cluster)
 {
      NNclusterVars_.clear();
-     NNclusterVars_.resize(meanVals_->size());
+     NNclusterVars_.resize(meanVals_.size());
      
      showerShapes_ = computeShowerShapes(cluster,false);
      std::vector<int> clusterLocal = clusterPosition(cluster);
 
-     NNclusterVars_[0] = (((cluster==seed) ? 1 : 0)-meanVals_->at(0))/stdVals_->at(0); //isSeed
-     NNclusterVars_[1] = (cluster->energy()-meanVals_->at(1))/stdVals_->at(1); //cl_energy
-     NNclusterVars_[2] = (cluster->energy()/TMath::CosH(cluster->eta())-meanVals_->at(2))/stdVals_->at(2); //cl_et
-     NNclusterVars_[3] = (cluster->eta()-meanVals_->at(3))/stdVals_->at(3); //cl_eta  
-     NNclusterVars_[4] = (cluster->phi()-meanVals_->at(4))/stdVals_->at(4); //cl_phi  
-     NNclusterVars_[5] = (clusterLocal[0]-meanVals_->at(5))/stdVals_->at(5); //cl_ieta/ix  
-     NNclusterVars_[6] = (clusterLocal[1]-meanVals_->at(6))/stdVals_->at(6); //cl_iphi/iy  
-     NNclusterVars_[7] = (clusterLocal[2]-meanVals_->at(7))/stdVals_->at(7); //cl_iz  
-     NNclusterVars_[8] = (deltaEta(seed->eta(), cluster->eta())-meanVals_->at(8))/stdVals_->at(8); //cl_dEta  
-     NNclusterVars_[9] = (deltaPhi(seed->phi(), cluster->phi())-meanVals_->at(9))/stdVals_->at(9); //cl_dPhi
-     NNclusterVars_[10] = ((seed->energy()-cluster->energy())-meanVals_->at(10))/stdVals_->at(10); //cl_dEnergy
-     NNclusterVars_[11] = ((seed->energy()/TMath::CosH(seed->eta())-cluster->energy()/TMath::CosH(cluster->eta()))-meanVals_->at(11))/stdVals_->at(11); //cl_dEt
-     NNclusterVars_[12] = (showerShapes_[0]-meanVals_->at(12))/stdVals_->at(12); //cl_r9
-     NNclusterVars_[13] = (showerShapes_[1]-meanVals_->at(13))/stdVals_->at(13); //cl_sigmaietaieta
-     NNclusterVars_[14] = (showerShapes_[2]-meanVals_->at(14))/stdVals_->at(14); //cl_sigmaietaiphi
-     NNclusterVars_[15] = (showerShapes_[3]-meanVals_->at(15))/stdVals_->at(15); //cl_sigmaiphiiphi     
-     NNclusterVars_[16] = (showerShapes_[4]-meanVals_->at(16))/stdVals_->at(16); //cl_swiss_cross      
-     NNclusterVars_[17] = (showerShapes_[5]-meanVals_->at(17))/stdVals_->at(17); //cl_nXtals 
-     NNclusterVars_[18] = (showerShapes_[6]-meanVals_->at(18))/stdVals_->at(18); //cl_etaWidth 
-     NNclusterVars_[19] = (showerShapes_[7]-meanVals_->at(19))/stdVals_->at(19); //cl_phiWidth 
+     NNclusterVars_[0] = (((cluster==seed) ? 1 : 0)-meanVals_.at(0))/stdVals_.at(0); //isSeed
+     NNclusterVars_[1] = (cluster->energy()-meanVals_.at(1))/stdVals_.at(1); //cl_energy
+     NNclusterVars_[2] = (cluster->energy()/TMath::CosH(cluster->eta())-meanVals_.at(2))/stdVals_.at(2); //cl_et
+     NNclusterVars_[3] = (cluster->eta()-meanVals_.at(3))/stdVals_.at(3); //cl_eta  
+     NNclusterVars_[4] = (cluster->phi()-meanVals_.at(4))/stdVals_.at(4); //cl_phi  
+     NNclusterVars_[5] = (clusterLocal[0]-meanVals_.at(5))/stdVals_.at(5); //cl_ieta/ix  
+     NNclusterVars_[6] = (clusterLocal[1]-meanVals_.at(6))/stdVals_.at(6); //cl_iphi/iy  
+     NNclusterVars_[7] = (clusterLocal[2]-meanVals_.at(7))/stdVals_.at(7); //cl_iz  
+     NNclusterVars_[8] = (deltaEta(seed->eta(), cluster->eta())-meanVals_.at(8))/stdVals_.at(8); //cl_dEta  
+     NNclusterVars_[9] = (deltaPhi(seed->phi(), cluster->phi())-meanVals_.at(9))/stdVals_.at(9); //cl_dPhi
+     NNclusterVars_[10] = ((seed->energy()-cluster->energy())-meanVals_.at(10))/stdVals_.at(10); //cl_dEnergy
+     NNclusterVars_[11] = ((seed->energy()/TMath::CosH(seed->eta())-cluster->energy()/TMath::CosH(cluster->eta()))-meanVals_.at(11))/stdVals_.at(11); //cl_dEt
+     NNclusterVars_[12] = (showerShapes_[0]-meanVals_.at(12))/stdVals_.at(12); //cl_r9
+     NNclusterVars_[13] = (showerShapes_[1]-meanVals_.at(13))/stdVals_.at(13); //cl_sigmaietaieta
+     NNclusterVars_[14] = (showerShapes_[2]-meanVals_.at(14))/stdVals_.at(14); //cl_sigmaietaiphi
+     NNclusterVars_[15] = (showerShapes_[3]-meanVals_.at(15))/stdVals_.at(15); //cl_sigmaiphiiphi     
+     NNclusterVars_[16] = (showerShapes_[4]-meanVals_.at(16))/stdVals_.at(16); //cl_swiss_cross      
+     NNclusterVars_[17] = (showerShapes_[5]-meanVals_.at(17))/stdVals_.at(17); //cl_nXtals 
+     NNclusterVars_[18] = (showerShapes_[6]-meanVals_.at(18))/stdVals_.at(18); //cl_etaWidth 
+     NNclusterVars_[19] = (showerShapes_[7]-meanVals_.at(19))/stdVals_.at(19); //cl_phiWidth 
      
 }
 
@@ -369,7 +370,7 @@ void EcalClustersGraph::fillVariables()
      NNwindowVars_.resize(nSeeds_);
      for (int is=0; is < nSeeds_; is++){
         for (int ic=0; ic < nCls_; ic++){
-             if(inWindows_(is,ic)==1){ 
+             if(inWindows_.Get(is,ic)==1){ 
                 computeVariables((*clusters_.at(is)).the_ptr().get(),(*clusters_.at(ic)).the_ptr().get()); 
                 fillHits((*clusters_.at(ic)).the_ptr().get());     
                 NNwindowVars_[is].push_back(std::make_pair(NNclusterVars_,NNclusterHits_));
@@ -377,5 +378,61 @@ void EcalClustersGraph::fillVariables()
         }
     }
 }
+
+void EcalClustersGraph::evaluateScores()
+{
+   //test: place holder code
+   
+   for(int i=0; i<nSeeds_; ++i)
+       for(int j=0; j<nCls_; ++j)
+       {
+           if(i==j) scoreMatrix_.Set(i,j,1.);
+           else{
+              if(inWindows_.Get(i,j)==1) scoreMatrix_.Set(i,j,Rnd->Uniform(0.,1.));
+              else scoreMatrix_.Set(i,j,0.);
+           }                
+       } 
+}
+
+void EcalClustersGraph::setThresholds()
+{
+   //test: place holder code
+   thresholds_ = std::vector<double>(nSeeds_, 0.1);
+}
+
+void EcalClustersGraph::selectClusters()
+{
+   //test
+   clusterMatrix_ = scoreMatrix_.ReduceElements(1,1,thresholds_,false);
+   GraphMatrix clusterMatrixNoDuplicate_ = clusterMatrix_.RemoveDuplicates(1.,false);
+   for(size_type r=0; r<clusterMatrixNoDuplicate_.nRows(); r++)
+   {
+       std::vector<double> row = clusterMatrixNoDuplicate_.GetRow(r); 
+       std::vector<double> subRow(row.begin(),row.begin()+clusterMatrixNoDuplicate_.nRows());
+       if(GraphMatrix<double>().AllZeros(&subRow))
+          clusterMatrix_.SetRowZero(r); 
+   }  
+   clusterMatrix_ = clusterMatrix_.RemoveDuplicates(1.,false);
+   //std::cout << "clusterMatrix: " << clusterMatrix_ << std::endl;
+}   
+
+std::vector<std::pair<CalibratedClusterPtr,CalibratedClusterPtrVector>> EcalClustersGraph::getWindows()
+{
+   std::vector<std::pair<CalibratedClusterPtr,CalibratedClusterPtrVector>> windows;
+   for(size_type ir=0; ir<clusterMatrix_.nRows(); ir++)  
+   {
+       if(GraphMatrix<double>().AllZeros(clusterMatrix_.GetRow(ir))) continue;
+        
+       CalibratedClusterPtr seed = clusters_[ir];
+       CalibratedClusterPtrVector clusters_inWindow;  
+       for(size_type ic=0; ic<clusterMatrix_.nColumns(); ic++)
+           if(clusterMatrix_.Get(ir,ic)!=0.) clusters_inWindow.push_back(clusters_[ic]); 
+       windows.push_back(std::make_pair(seed,clusters_inWindow));
+   }
+   return windows;
+}
+
+
+
 
 

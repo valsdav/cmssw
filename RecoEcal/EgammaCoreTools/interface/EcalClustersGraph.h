@@ -1,3 +1,6 @@
+#ifndef RecoEcal_EgammaCoreTools_EcalClustersGraph_h
+#define RecoEcal_EgammaCoreTools_EcalClustersGraph_h
+
 /**
    \file
    Tools for manipulating ECAL Clusters as graphs
@@ -5,10 +8,14 @@
    \date 05 October 2020
 */
 
-#ifndef RecoEcal_EgammaCoreTools_EcalClustersGraph_h
-#define RecoEcal_EgammaCoreTools_EcalClustersGraph_h
-
 #include <vector>
+#include <algorithm>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/matrix_proxy.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include "TRandom.h"
+
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "FWCore/ParameterSet/interface/FileInPath.h"
 #include "FWCore/Utilities/interface/isFinite.h"
@@ -32,18 +39,17 @@
 #include "Geometry/EcalAlgo/interface/EcalBarrelGeometry.h"
 #include "Geometry/EcalAlgo/interface/EcalEndcapGeometry.h"
 
-#include "RecoEcal/EgammaClusterAlgos/interface/PFECALSuperClusterAlgo.h"
-#include <boost/numeric/ublas/matrix.hpp>
+#include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
+#include "RecoEcal/EgammaCoreTools/interface/GraphMatrix.h"
 
 using namespace std;
 using namespace reco;
-
 namespace ublas = boost::numeric::ublas;
 
 class EcalClustersGraph {
 
-  typedef std::shared_ptr<PFECALSuperClusterAlgo::CalibratedPFCluster> CalibratedClusterPtr;
-  typedef std::vector<PFECALSuperClusterAlgo::CalibratedClusterPtr> CalibratedClusterPtrVector;
+  typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
+  typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
 
 private:
 
@@ -53,10 +59,11 @@ private:
 
    // Adjacency matrix defining which clusters are inside the seeds windows.
    // row: seeds (Et ordered), column: clusters (Et ordered)
-   ublas::matrix<int> inWindows_;
+   GraphMatrix<int> inWindows_;
    // Adjacency matrix defining how much each cluster is linked to the seed
    // row: seeds (Et ordered), column: clusters (Et ordered)
-   ublas::matrix<double> scoreMatrix_;
+   GraphMatrix<double> scoreMatrix_;
+   GraphMatrix<double> clusterMatrix_;
 
    //To compute the input variables
    const CaloTopology* topology_;
@@ -64,18 +71,20 @@ private:
    const CaloSubdetectorGeometry* eeGeom_;
    const EcalRecHitCollection* recHitsEB_;
    const EcalRecHitCollection* recHitsEE_;
-   const std::vector<double>* meanVals_;
-   const std::vector<double>* stdVals_;
-   std::vector<float> locCov_;
+   std::vector<double> meanVals_;
+   std::vector<double> stdVals_;
+   std::vector<float> locCov_;  
    std::pair<double,double> widths_;
    std::vector<double> showerShapes_;
    std::vector<double> NNclusterVars_;
    std::vector<std::vector<double>> NNclusterHits_; 
    std::vector<std::vector<std::pair<std::vector<double>,std::vector<std::vector<double>>>>> NNwindowVars_;
+   std::vector<double> thresholds_;
+   TRandom* Rnd;
 
 public:
 
-   EcalClustersGraph(CalibratedClusterPtrVector clusters, int nSeeds, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE, const std::vector<double>* meanVals, const std::vector<double>* stdVals);
+   EcalClustersGraph(CalibratedClusterPtrVector clusters, int nSeeds, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE);
 
    std::vector<int> clusterPosition(const CaloCluster* cluster); 
    double deltaPhi(double seed_phi, double cluster_phi);
@@ -85,10 +94,14 @@ public:
    std::vector<double> computeShowerShapes(const CaloCluster* cluster, bool full5x5);
    void computeVariables(const CaloCluster* seed, const CaloCluster* cluster);
    void fillHits(const CaloCluster* cluster);
+   double scoreThreshold(const CaloCluster* cluster);
    void initWindows();
    void clearWindows();
    void fillVariables();
-
+   void setThresholds();
+   void evaluateScores();
+   void selectClusters();
+   std::vector<std::pair<CalibratedClusterPtr,CalibratedClusterPtrVector>> getWindows();
 };
 
 #endif
