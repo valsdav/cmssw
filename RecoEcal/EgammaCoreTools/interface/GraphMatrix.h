@@ -11,6 +11,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <iomanip> 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/numeric/ublas/vector.hpp>
@@ -69,9 +70,9 @@ class GraphMatrix
     void SetRows(const size_type r, const size_type c, std::vector<std::vector<T>>* rows);
     void SetColumns(const size_type r, const size_type c, std::vector<std::vector<T>> columns);
     void SetColumns(const size_type r, const size_type c, std::vector<std::vector<T>>* columns);
-    int NZeros(int i, bool isRow);
-    int NZeros(std::vector<T> elements);
-    int NZeros(std::vector<T>* elements);
+    int nZeros(int i, bool isRow);
+    int nZeros(std::vector<T> elements);
+    int nZeros(std::vector<T>* elements);
     bool AllZeros(std::vector<T> elements);
     bool AllZeros(std::vector<T>* elements);
     GraphMatrix Unit(const size_type s) { return GraphMatrix(ublas::identity_matrix(s)); };  
@@ -295,7 +296,6 @@ template<typename T> void GraphMatrix<T>::SetRowZero(size_type r)
    std::vector<T> row_;
    row_.resize(nColumns_);
    if(r>=nRows_){ 
-      //std::cout << "Adding a new row!" << std::endl; 
       Resize(nRows_+1,nColumns_);
       r = nRows_-1;
    }
@@ -312,7 +312,6 @@ template<typename T> void GraphMatrix<T>::SetRow(size_type r, std::vector<T> row
    std::vector<T> row_ = row;
    row_.resize(nColumns_);
    if(r>=nRows_){ 
-      //std::cout << "Adding a new row!" << std::endl; 
       Resize(nRows_+1,nColumns_);
       r = nRows_-1;
    }
@@ -329,7 +328,6 @@ template<typename T> void GraphMatrix<T>::SetRow(size_type r, std::vector<T>* ro
    std::vector<T> row_ = *row;
    row_.resize(nColumns_);
    if(r>=nRows_){ 
-      //std::cout << "Adding a new row!" << std::endl; 
       Resize(nRows_+1,nColumns_);
       r = nRows_-1;
    }
@@ -346,7 +344,6 @@ template<typename T> void GraphMatrix<T>::SetColumnZero(size_type c)
    std::vector<T> column_;
    column_.resize(nRows_);
    if(c>=nColumns_){ 
-      //std::cout << "Adding a new column!" << std::endl; 
       Resize(nRows_,nColumns_+1);
       c = nColumns_-1;
    }
@@ -363,7 +360,6 @@ template<typename T> void GraphMatrix<T>::SetColumn(size_type c, std::vector<T> 
    std::vector<T> column_ = column;
    column_.resize(nRows_);
    if(c>=nColumns_){ 
-      //std::cout << "Adding a new column!" << std::endl; 
       Resize(nRows_,nColumns_+1);
       c = nColumns_-1;
    }
@@ -380,7 +376,6 @@ template<typename T> void GraphMatrix<T>::SetColumn(size_type c, std::vector<T>*
    std::vector<T> column_ = *column;
    column_.resize(nRows_);
    if(c>=nColumns_){ 
-      //std::cout << "Adding a new column!" << std::endl; 
       Resize(nRows_,nColumns_+1);
       c = nColumns_-1;
    }
@@ -392,7 +387,7 @@ template<typename T> void GraphMatrix<T>::SetColumn(size_type c, std::vector<T>*
    nColumns_ = matrix_.size2();
 }
 
-template<typename T> int GraphMatrix<T>::NZeros(int i, bool isRow)
+template<typename T> int GraphMatrix<T>::nZeros(int i, bool isRow)
 {
    std::vector<T> vector_;
    if(isRow) vector_ = this->GetRow(i);
@@ -402,13 +397,13 @@ template<typename T> int GraphMatrix<T>::NZeros(int i, bool isRow)
    return n;
 }
 
-template<typename T> int GraphMatrix<T>::NZeros(std::vector<T> elements)
+template<typename T> int GraphMatrix<T>::nZeros(std::vector<T> elements)
 {
    int n = std::count(elements.begin(), elements.end(), T(0));
    return n;
 }
 
-template<typename T> int GraphMatrix<T>::NZeros(std::vector<T>* elements)
+template<typename T> int GraphMatrix<T>::nZeros(std::vector<T>* elements)
 {
    int n = std::count(elements->begin(), elements->end(), T(0));
    return n;
@@ -417,14 +412,14 @@ template<typename T> int GraphMatrix<T>::NZeros(std::vector<T>* elements)
 template<typename T> bool GraphMatrix<T>::AllZeros(std::vector<T> elements)
 {
    bool isZeros = false;
-   if(NZeros(&elements) == (int)elements.size()) isZeros = true;
+   if(nZeros(&elements) == (int)elements.size()) isZeros = true;
    return isZeros;
 }
 
 template<typename T> bool GraphMatrix<T>::AllZeros(std::vector<T>* elements)
 {
    bool isZeros = false;
-   if(NZeros(elements) == (int)elements->size()) isZeros = true;
+   if(nZeros(elements) == (int)elements->size()) isZeros = true;
    return isZeros;
 }
 
