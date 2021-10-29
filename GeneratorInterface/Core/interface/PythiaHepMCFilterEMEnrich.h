@@ -1,9 +1,9 @@
-#ifndef PYTHIAHEPMCFILTERGAMMAGAMMA_h
-#define PYTHIAHEPMCFILTERGAMMAGAMMA_h
+#ifndef PYTHIAHEPMCFILTEREMENRICH_h
+#define PYTHIAHEPMCFILTEREMENRICH_h
 
 //
 // Package:    GeneratorInterface/GenFilters
-// Class:      PythiaHepMCFilterGammaGamma
+// Class:      PythiaHepMCFilterEMEnrich
 //
 // Original Author:  Matteo Sani
 //
@@ -21,10 +21,10 @@ namespace edm {
   class HepMCProduct;
 }
 
-class PythiaHepMCFilterGammaGamma : public BaseHepMCFilter {
+class PythiaHepMCFilterEMEnrich : public BaseHepMCFilter {
 public:
-  explicit PythiaHepMCFilterGammaGamma(const edm::ParameterSet&);
-  ~PythiaHepMCFilterGammaGamma() override;
+  explicit PythiaHepMCFilterEMEnrich(const edm::ParameterSet&);
+  ~PythiaHepMCFilterEMEnrich() override;
 
   /** @return true if this GenEvent passes the double EM enrichment
       criterion */
@@ -61,6 +61,7 @@ private:
 
   /** maximum difference in phi and eta for which other electrons/photons
       are added to seeds to form candidates.
+
       Note that electrons/photons are accepted if they are within the cone
       specified by dRSeedMax or if they are within the rectangular region
       specified by (dPhiSeedMax, dEtaSeedMax). */
@@ -97,5 +98,11 @@ private:
   /** minimum pt for prompt seed particles to be considered (only
       effective if acceptPrompts is true) */
   const double promptPtThreshold;
+
+  /** N good pairs */
+  const int nGoodPairs;
+
+  /** N good pairs from the same mother */
+  const int nGoodPairsFromMother;
 };
 #endif
