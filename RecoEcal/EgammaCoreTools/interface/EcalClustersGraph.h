@@ -9,6 +9,7 @@
 */
 
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
@@ -17,7 +18,6 @@
 #include "TRandom.h"
 
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
-#include "FWCore/ParameterSet/interface/FileInPath.h"
 #include "FWCore/Utilities/interface/isFinite.h"
 
 #include "DataFormats/CaloRecHit/interface/CaloCluster.h"
@@ -41,67 +41,77 @@
 
 #include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
 #include "RecoEcal/EgammaCoreTools/interface/GraphMatrix.h"
+#include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
 
 using namespace std;
 using namespace reco;
 namespace ublas = boost::numeric::ublas;
 
-class EcalClustersGraph {
+namespace reco {
 
-  typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
-  typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
+  class EcalClustersGraph {
+    typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
+    typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
 
-private:
+  private:
+    CalibratedClusterPtrVector clusters_;
+    int nSeeds_;
+    int nCls_;
 
-   CalibratedClusterPtrVector clusters_;
-   int nSeeds_;
-   int nCls_;
+    // Adjacency matrix defining which clusters are inside the seeds windows.
+    // row: seeds (Et ordered), column: clusters (Et ordered)
+    GraphMatrix<int> inWindows_;
+    // Adjacency matrix defining how much each cluster is linked to the seed
+    // row: seeds (Et ordered), column: clusters (Et ordered)
+    GraphMatrix<double> scoreMatrix_;
+    GraphMatrix<double> clusterMatrix_;
 
-   // Adjacency matrix defining which clusters are inside the seeds windows.
-   // row: seeds (Et ordered), column: clusters (Et ordered)
-   GraphMatrix<int> inWindows_;
-   // Adjacency matrix defining how much each cluster is linked to the seed
-   // row: seeds (Et ordered), column: clusters (Et ordered)
-   GraphMatrix<double> scoreMatrix_;
-   GraphMatrix<double> clusterMatrix_;
+    //To compute the input variables
+    const CaloTopology* topology_;
+    const CaloSubdetectorGeometry* ebGeom_;
+    const CaloSubdetectorGeometry* eeGeom_;
+    const EcalRecHitCollection* recHitsEB_;
+    const EcalRecHitCollection* recHitsEE_;
+    const SCProducerCache* SCProducerCache_;
 
-   //To compute the input variables
-   const CaloTopology* topology_;
-   const CaloSubdetectorGeometry* ebGeom_;
-   const CaloSubdetectorGeometry* eeGeom_;
-   const EcalRecHitCollection* recHitsEB_;
-   const EcalRecHitCollection* recHitsEE_;
-   std::vector<double> meanVals_;
-   std::vector<double> stdVals_;
-   std::vector<float> locCov_;  
-   std::pair<double,double> widths_;
-   std::vector<double> showerShapes_;
-   std::vector<double> NNclusterVars_;
-   std::vector<std::vector<double>> NNclusterHits_; 
-   std::vector<std::vector<std::pair<std::vector<double>,std::vector<std::vector<double>>>>> NNwindowVars_;
-   std::vector<double> thresholds_;
-   TRandom* Rnd;
+    std::vector<float> locCov_;
+    std::pair<double, double> widths_;
+    std::vector<double> thresholds_;
+    DeepSCInputs inputs_;
+    TRandom* Rnd;
 
-public:
+  public:
+    EcalClustersGraph(CalibratedClusterPtrVector clusters,
+                      int nSeeds,
+                      const CaloTopology* topology,
+                      const CaloSubdetectorGeometry* ebGeom,
+                      const CaloSubdetectorGeometry* eeGeom,
+                      const EcalRecHitCollection* recHitsEB,
+                      const EcalRecHitCollection* recHitsEE,
+                      const SCProducerCache* cache);
 
-   EcalClustersGraph(CalibratedClusterPtrVector clusters, int nSeeds, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE);
+    std::vector<int> clusterPosition(const CaloCluster* cluster);
+    double deltaPhi(double seed_phi, double cluster_phi);
+    double deltaEta(double seed_eta, double cluster_eta);
+    std::vector<double> dynamicWindow(double seedEta);
 
-   std::vector<int> clusterPosition(const CaloCluster* cluster); 
-   double deltaPhi(double seed_phi, double cluster_phi);
-   double deltaEta(double seed_eta, double cluster_eta);  
-   std::vector<double> dynamicWindow(double seedEta);
-   std::pair<double,double> computeCovariances(const CaloCluster* cluster);
-   std::vector<double> computeShowerShapes(const CaloCluster* cluster, bool full5x5);
-   void computeVariables(const CaloCluster* seed, const CaloCluster* cluster);
-   void fillHits(const CaloCluster* cluster);
-   double scoreThreshold(const CaloCluster* cluster);
-   void initWindows();
-   void clearWindows();
-   void fillVariables();
-   void setThresholds();
-   void evaluateScores();
-   void selectClusters();
-   std::vector<std::pair<CalibratedClusterPtr,CalibratedClusterPtrVector>> getWindows();
-};
+    std::pair<double, double> computeCovariances(const CaloCluster* cluster);
+    std::vector<double> computeShowerShapes(const CaloCluster* cluster, bool full5x5);
+    std::vector<double> computeVariables(const CaloCluster* seed, const CaloCluster* cluster);
+    std::vector<std::array<double, 4>> fillHits(const CaloCluster* cluster);
+    std::vector<double> computeWindowVariables(const std::vector<std::vector<double>>& clusters);
 
+    void fillVariables();
+
+    double scoreThreshold(const CaloCluster* cluster);
+    void initWindows();
+    void clearWindows();
+
+    void setThresholds();
+    void evaluateScores();
+    void selectClusters();
+    std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> getWindows();
+  };
+
+}  // namespace reco
 #endif

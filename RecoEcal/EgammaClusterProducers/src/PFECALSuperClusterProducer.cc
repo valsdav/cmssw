@@ -44,7 +44,8 @@ namespace {
   const std::string EnergyWeight__CalibratedTotal("CalibratedTotal");
 }  // namespace
 
-PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig) {
+PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig, const reco::SCProducerCache* gcache):
+    superClusterAlgo_(gcache) {
   verbose_ = iConfig.getUntrackedParameter<bool>("verbose", false);
 
   superClusterAlgo_.setUseRegression(iConfig.getParameter<bool>("useRegression"));
@@ -57,7 +58,7 @@ PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& 
     _theclusteringtype = PFECALSuperClusterAlgo::kBOX;
   } else if (_typename == ClusterType__Mustache) {
     _theclusteringtype = PFECALSuperClusterAlgo::kMustache;
-  } else if ( _typename == ClusterType__DeepSC ) {
+  } else if (_typename == ClusterType__DeepSC) {
     _theclusteringtype = PFECALSuperClusterAlgo::kDeepSC;
   } else {
     throw cms::Exception("InvalidClusteringType") << "You have not chosen a valid clustering type,"
@@ -291,6 +292,11 @@ void PFECALSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
   iEvent.put(std::move(superClusterAlgo_.getEEOutputSCCollection()), PFSuperClusterCollectionEndcapWithPreshower_);
 }
 
+std::unique_ptr<reco::SCProducerCache> PFECALSuperClusterProducer::initializeGlobalCache(const edm::ParameterSet& config) {
+  return std::make_unique<reco::SCProducerCache>(config);
+}
+
+
 void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //Mustache
   edm::ParameterSetDescription desc1;
@@ -341,7 +347,7 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   desc1.add<edm::InputTag>("barrelRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
   desc1.add<edm::InputTag>("endcapRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
   desc1.add<std::string>("PFSuperClusterCollectionEndcapWithPreshower",
-                        "particleFlowSuperClusterECALEndcapWithPreshower");
+                         "particleFlowSuperClusterECALEndcapWithPreshower");
   desc1.add<bool>("dropUnseedable", false);
   descriptions.add("particleFlowSuperClusterECALMustache", desc1);
 
@@ -394,7 +400,20 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   desc2.add<edm::InputTag>("barrelRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
   desc2.add<edm::InputTag>("endcapRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
   desc2.add<std::string>("PFSuperClusterCollectionEndcapWithPreshower",
-                        "particleFlowDeepSuperClusterECALEndcapWithPreshower");
+                         "particleFlowDeepSuperClusterECALEndcapWithPreshower");
   desc2.add<bool>("dropUnseedable", false);
   descriptions.add("particleFlowSuperClusterECALDeepSC", desc2);
+
+  {
+    edm::ParameterSetDescription psd1;
+    psd1.add<std::string>("modelFile","RecoEcal/EgammaClusterProducers/DeepSCGraph/model/model.pb");
+    psd1.add<std::string>("scalerFileClusterFeatures", "RecoEcal/EgammaClusterProducers/DeepSCGraph/model/scaler_clusters.txt");
+    psd1.add<std::string>("scalerFileWindowFeatures", "RecoEcal/EgammaClusterProducers/DeepSCGraph/model/scaler_window.txt");
+    psd1.add<uint>("nClusterFeatures", 12 );
+    psd1.add<uint>("nWindowFeatures", 18);
+    psd1.add<uint>("maxNClusters", 45);
+    psd1.add<uint>("maxNRechits", 40);
+    desc2.add<edm::ParameterSetDescription>("deepSuperClusterGraphConfig", psd1);
+  }
 }
+

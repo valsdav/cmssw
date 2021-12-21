@@ -28,12 +28,12 @@ namespace gen {
   //
   Py8MultiPtGun::Py8MultiPtGun(edm::ParameterSet const& ps) : Py8GunBase(ps) {
     // ParameterSet defpset ;
-    edm::ParameterSet pgun_params = ps.getParameter<edm::ParameterSet>("PGunParameters");               // , defpset ) ;
-    fMinEta = pgun_params.getParameter<std::vector<double>>("MinEta");                                  // ,-2.2);
-    fMaxEta = pgun_params.getParameter<std::vector<double>>("MaxEta");                                  // , 2.2);
-    fMinPt = pgun_params.getParameter<std::vector<double>>("MinPt");                                    // ,  0.);
-    fMaxPt = pgun_params.getParameter<std::vector<double>>("MaxPt");                                    // ,  0.);
-    fAddAntiParticle = pgun_params.getParameter<bool>("AddAntiParticle");                               //, false) ;
+    edm::ParameterSet pgun_params = ps.getParameter<edm::ParameterSet>("PGunParameters");  // , defpset ) ;
+    fMinEta = pgun_params.getParameter<std::vector<double>>("MinEta");                     // ,-2.2);
+    fMaxEta = pgun_params.getParameter<std::vector<double>>("MaxEta");                     // , 2.2);
+    fMinPt = pgun_params.getParameter<std::vector<double>>("MinPt");                       // ,  0.);
+    fMaxPt = pgun_params.getParameter<std::vector<double>>("MaxPt");                       // ,  0.);
+    fAddAntiParticle = pgun_params.getParameter<bool>("AddAntiParticle");                  //, false) ;
   }
 
   bool Py8MultiPtGun::generatePartonsAndHadronize() {

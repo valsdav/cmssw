@@ -3,30 +3,25 @@
 
 #include "IOMC/ParticleGuns/interface/BaseFlatGunProducer.h"
 
-namespace edm
-{
+namespace edm {
 
-  class ECALOverlapGunProducer : public BaseFlatGunProducer
-  {
-
+  class ECALOverlapGunProducer : public BaseFlatGunProducer {
   public:
-    ECALOverlapGunProducer(const ParameterSet &);
+    ECALOverlapGunProducer(const ParameterSet&);
     ~ECALOverlapGunProducer() override;
 
   private:
+    void produce(Event& e, const EventSetup& es) override;
 
-    void produce(Event & e, const EventSetup& es) override;
-
-  protected :
-
+  protected:
     // data members
-    double fEnFix,fEnMin,fEnMax,fRMin,fRMax,fZMin,fZMax,fDeltaR,fDeltaPhi,fDeltaZ,fPhiMin,fPhiMax;
+    double fEnFix, fEnMin, fEnMax, fRMin, fRMax, fZMin, fZMax, fDeltaR, fDeltaPhi, fDeltaZ, fPhiMin, fPhiMax;
     int fNParticles;
     bool fPointing = false;
     bool fOverlapping = false;
     bool fRandomShoot = false;
     std::vector<int> fPartIDs;
   };
-}
+}  // namespace edm
 
 #endif

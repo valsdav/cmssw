@@ -23,13 +23,10 @@
 using namespace edm;
 using namespace std;
 
-CloseByParticleFlatEtGunProducer::CloseByParticleFlatEtGunProducer(const ParameterSet& pset) :
-   BaseFlatGunProducer(pset)
-{
-
-  ParameterSet defpset ;
-  ParameterSet pgun_params =
-    pset.getParameter<ParameterSet>("PGunParameters") ;
+CloseByParticleFlatEtGunProducer::CloseByParticleFlatEtGunProducer(const ParameterSet& pset)
+    : BaseFlatGunProducer(pset) {
+  ParameterSet defpset;
+  ParameterSet pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
 
   fPtMin = pgun_params.getParameter<double>("MinPt");
   fPtMax = pgun_params.getParameter<double>("MaxPt");
@@ -44,123 +41,115 @@ CloseByParticleFlatEtGunProducer::CloseByParticleFlatEtGunProducer(const Paramet
   fOverlapping = pgun_params.getParameter<bool>("Overlapping");
   fRandomShoot = pgun_params.getParameter<bool>("RandomShoot");
   fNParticles = pgun_params.getParameter<int>("NParticles");
-  fPartIDs = pgun_params.getParameter< vector<int> >("PartID");
+  fPartIDs = pgun_params.getParameter<vector<int> >("PartID");
 
   produces<HepMCProduct>("unsmeared");
   produces<GenEventInfoProduct>();
-
 }
 
-CloseByParticleFlatEtGunProducer::~CloseByParticleFlatEtGunProducer()
-{
-   // no need to cleanup GenEvent memory - done in HepMCProduct
+CloseByParticleFlatEtGunProducer::~CloseByParticleFlatEtGunProducer() {
+  // no need to cleanup GenEvent memory - done in HepMCProduct
 }
 
-void CloseByParticleFlatEtGunProducer::produce(Event &e, const EventSetup& es)
-{
-   edm::Service<edm::RandomNumberGenerator> rng;
-   CLHEP::HepRandomEngine* engine = &rng->getEngine(e.streamID());
+void CloseByParticleFlatEtGunProducer::produce(Event& e, const EventSetup& es) {
+  edm::Service<edm::RandomNumberGenerator> rng;
+  CLHEP::HepRandomEngine* engine = &rng->getEngine(e.streamID());
 
-   if ( fVerbosity > 0 )
-     {
-       LogDebug("CloseByParticleFlatEtGunProducer") << " CloseByParticleFlatEtGunProducer : Begin New Event Generation" << endl ;
-     }
-   fEvt = new HepMC::GenEvent() ;
+  if (fVerbosity > 0) {
+    LogDebug("CloseByParticleFlatEtGunProducer")
+        << " CloseByParticleFlatEtGunProducer : Begin New Event Generation" << endl;
+  }
+  fEvt = new HepMC::GenEvent();
 
-   // loop over particles
-   //
-   int barcode = 1 ;
-   int numParticles = fRandomShoot ? CLHEP::RandFlat::shoot(engine, 1, fNParticles) : fNParticles;
-   std::vector<int> particles;
+  // loop over particles
+  //
+  int barcode = 1;
+  int numParticles = fRandomShoot ? CLHEP::RandFlat::shoot(engine, 1, fNParticles) : fNParticles;
+  std::vector<int> particles;
 
-   for(int i=0; i<numParticles; i++){
-     int partIdx = CLHEP::RandFlat::shoot(engine, 0, fPartIDs.size());
-     particles.push_back(fPartIDs[partIdx]);
-     }
+  for (int i = 0; i < numParticles; i++) {
+    int partIdx = CLHEP::RandFlat::shoot(engine, 0, fPartIDs.size());
+    particles.push_back(fPartIDs[partIdx]);
+  }
 
-   double phi = CLHEP::RandFlat::shoot(engine, fPhiMin, fPhiMax);
-   double fR = CLHEP::RandFlat::shoot(engine,fRMin,fRMax);
-   double fZ = CLHEP::RandFlat::shoot(engine,fZMin,fZMax); // EE+ or all EB
-   double tmpPhi = phi;
-   double tmpR = fR;
+  double phi = CLHEP::RandFlat::shoot(engine, fPhiMin, fPhiMax);
+  double fR = CLHEP::RandFlat::shoot(engine, fRMin, fRMax);
+  double fZ = CLHEP::RandFlat::shoot(engine, fZMin, fZMax);  // EE+ or all EB
+  double tmpPhi = phi;
+  double tmpR = fR;
 
-   for (unsigned int ip=0; ip<particles.size(); ++ip)
-   {
-     if(fOverlapping)
-       {
-        fR = CLHEP::RandFlat::shoot(engine,tmpR-fDelta,tmpR+fDelta);
-        phi = CLHEP::RandFlat::shoot(engine, tmpPhi-fDelta/fR, tmpPhi+fDelta/fR);
-       }
-     else
-       phi += 2*TMath::Pi()/(float)numParticles; 
+  for (unsigned int ip = 0; ip < particles.size(); ++ip) {
+    if (fOverlapping) {
+      fR = CLHEP::RandFlat::shoot(engine, tmpR - fDelta, tmpR + fDelta);
+      phi = CLHEP::RandFlat::shoot(engine, tmpPhi - fDelta / fR, tmpPhi + fDelta / fR);
+    } else
+      phi += 2 * TMath::Pi() / (float)numParticles;
 
-     // if EE, generate one particle in EE+ and next particle in EE-
-     if(fZMin==fZMax){
-       fZ*=-1; // change at every round
-     }
+    // if EE, generate one particle in EE+ and next particle in EE-
+    if (fZMin == fZMax) {
+      fZ *= -1;  // change at every round
+    }
 
-     //generation flat in Et
-     double pt = CLHEP::RandFlat::shoot(engine,fPtMin,fPtMax);
-     int PartID = particles[ip] ;
-     const HepPDT::ParticleData *PData = fPDGTable->particle(HepPDT::ParticleID(abs(PartID))) ;
-     double mass   = PData->mass().value() ;
-     double theta  = acos(fZ/sqrt(fR*fR + fZ*fZ)) ;
-     double mom    = pt/sin(theta) ;
-     double px     = pt*cos(phi) ;
-     double py     = pt*sin(phi) ;
-     double pz     = mom*cos(theta) ;
-     double energy2= mom*mom + mass*mass ;
-     double energy = sqrt(energy2) ; 
+    //generation flat in Et
+    double pt = CLHEP::RandFlat::shoot(engine, fPtMin, fPtMax);
+    int PartID = particles[ip];
+    const HepPDT::ParticleData* PData = fPDGTable->particle(HepPDT::ParticleID(abs(PartID)));
+    double mass = PData->mass().value();
+    double theta = acos(fZ / sqrt(fR * fR + fZ * fZ));
+    double mom = pt / sin(theta);
+    double px = pt * cos(phi);
+    double py = pt * sin(phi);
+    double pz = mom * cos(theta);
+    double energy2 = mom * mom + mass * mass;
+    double energy = sqrt(energy2);
 
-     // Compute Vertex Position
-     double x=fR*cos(phi);
-     double y=fR*sin(phi);
-     constexpr double c= 2.99792458e+1; // cm/ns
-     double timeOffset = sqrt(x*x + y*y + fZ*fZ)/c*ns*c_light;
-     HepMC::GenVertex* Vtx = new HepMC::GenVertex(HepMC::FourVector(x*cm,y*cm,fZ*cm,timeOffset));
+    // Compute Vertex Position
+    double x = fR * cos(phi);
+    double y = fR * sin(phi);
+    constexpr double c = 2.99792458e+1;  // cm/ns
+    double timeOffset = sqrt(x * x + y * y + fZ * fZ) / c * ns * c_light;
+    HepMC::GenVertex* Vtx = new HepMC::GenVertex(HepMC::FourVector(x * cm, y * cm, fZ * cm, timeOffset));
 
-     HepMC::FourVector p(px,py,pz,energy) ;
-     // If we are requested to be pointing to (0,0,0), correct the momentum direction
-     if (fPointing) {
-       math::XYZVector direction(x,y,fZ);
-       math::XYZVector momentum = direction.unit() * mom;
-       p.setX(momentum.x());
-       p.setY(momentum.y());
-       p.setZ(momentum.z());
-     }
-     HepMC::GenParticle* Part = new HepMC::GenParticle(p,PartID,1);
-     Part->suggest_barcode( barcode );
-     barcode++;
+    HepMC::FourVector p(px, py, pz, energy);
+    // If we are requested to be pointing to (0,0,0), correct the momentum direction
+    if (fPointing) {
+      math::XYZVector direction(x, y, fZ);
+      math::XYZVector momentum = direction.unit() * mom;
+      p.setX(momentum.x());
+      p.setY(momentum.y());
+      p.setZ(momentum.z());
+    }
+    HepMC::GenParticle* Part = new HepMC::GenParticle(p, PartID, 1);
+    Part->suggest_barcode(barcode);
+    barcode++;
 
-     Vtx->add_particle_out(Part);
+    Vtx->add_particle_out(Part);
 
-     if (fVerbosity > 0) {
-       Vtx->print();
-       Part->print();
-     }
-     fEvt->add_vertex(Vtx);
-   }
+    if (fVerbosity > 0) {
+      Vtx->print();
+      Part->print();
+    }
+    fEvt->add_vertex(Vtx);
+  }
 
+  fEvt->set_event_number(e.id().event());
+  fEvt->set_signal_process_id(20);
 
-   fEvt->set_event_number(e.id().event());
-   fEvt->set_signal_process_id(20);
+  if (fVerbosity > 0) {
+    fEvt->print();
+  }
 
-   if ( fVerbosity > 0 )
-   {
-      fEvt->print();
-   }
+  unique_ptr<HepMCProduct> BProduct(new HepMCProduct());
+  BProduct->addHepMCData(fEvt);
+  e.put(std::move(BProduct), "unsmeared");
 
-   unique_ptr<HepMCProduct> BProduct(new HepMCProduct());
-   BProduct->addHepMCData( fEvt );
-   e.put(std::move(BProduct), "unsmeared");
+  unique_ptr<GenEventInfoProduct> genEventInfo(new GenEventInfoProduct(fEvt));
+  e.put(std::move(genEventInfo));
 
-   unique_ptr<GenEventInfoProduct> genEventInfo(new GenEventInfoProduct(fEvt));
-   e.put(std::move(genEventInfo));
+  if (fVerbosity > 0) {
+    LogDebug("CloseByParticleFlatEtGunProducer")
+        << " CloseByParticleFlatEtGunProducer : Event Generation Done " << endl;
+  }
 
-   if ( fVerbosity > 0 )
-     {
-       LogDebug("CloseByParticleFlatEtGunProducer") << " CloseByParticleFlatEtGunProducer : Event Generation Done " << endl;
-     }
-
-   particles.clear();
+  particles.clear();
 }

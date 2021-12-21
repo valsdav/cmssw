@@ -27,76 +27,93 @@
 
 namespace reco {
   class DeepSC {
-    
   public:
-
     explicit DeepSC();
     ~DeepSC();
-   
+
     double DeltaPhi(double seed_phi, double cluster_phi);
-    double DeltaEta(double seed_eta, double cluster_eta); 
-    std::pair<double,double> ComputeCovariances(const CaloCluster cluster, const EcalRecHitCollection* recHits, const CaloSubdetectorGeometry* geometry);
-    void ComputeVariables(const CaloCluster* seed, const CaloCluster* cluster, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE);
+    double DeltaEta(double seed_eta, double cluster_eta);
+    std::pair<double, double> ComputeCovariances(const CaloCluster cluster,
+                                                 const EcalRecHitCollection* recHits,
+                                                 const CaloSubdetectorGeometry* geometry);
+    void ComputeVariables(const CaloCluster* seed,
+                          const CaloCluster* cluster,
+                          const CaloTopology* topology,
+                          const CaloSubdetectorGeometry* ebGeom,
+                          const CaloSubdetectorGeometry* eeGeom,
+                          const EcalRecHitCollection* recHitsEB,
+                          const EcalRecHitCollection* recHitsEE);
     void SetNNVarVal(std::vector<double> vars);
     void NormalizeNNVars(const CaloCluster* seed);
     float EvaluateNN(const CaloCluster* seed);
-    bool InSuperCluster(const CaloCluster* seed, const CaloCluster* cluster, const CaloTopology *topology, const CaloSubdetectorGeometry* ebGeom, const CaloSubdetectorGeometry* eeGeom, const EcalRecHitCollection *recHitsEB, const EcalRecHitCollection *recHitsEE);
+    bool InSuperCluster(const CaloCluster* seed,
+                        const CaloCluster* cluster,
+                        const CaloTopology* topology,
+                        const CaloSubdetectorGeometry* ebGeom,
+                        const CaloSubdetectorGeometry* eeGeom,
+                        const EcalRecHitCollection* recHitsEB,
+                        const EcalRecHitCollection* recHitsEE);
     bool InSuperCluster(std::vector<double> clusterVariables_);
-    std::vector<double> NNclusterVars(){ return NNclusterVars_; }; 
-    void SetXtalsInWindow(DetId seedDetId, double etawidthSuperCluster, double phiwidthSuperCluster, const CaloTopology *topology, const CaloGeometry *geometry);
+    std::vector<double> NNclusterVars() { return NNclusterVars_; };
+    void SetXtalsInWindow(DetId seedDetId,
+                          double etawidthSuperCluster,
+                          double phiwidthSuperCluster,
+                          const CaloTopology* topology,
+                          const CaloGeometry* geometry);
     void ClearXtalsInWindow();
-    std::vector<DetId> XtalsInWindow(){ return xtals_inWindow_; };
-    std::pair<double,double> GetMaximumDetaDphi(DetId* seedDetId, std::vector<DetId>* idMatrix, const CaloGeometry *geometry);  
-    void DeepSCID(const CaloClusterPtrVector& clusters, 
-		  int & nclusters, float & EoutsideDeepSC,
-                  const CaloTopology *topology, 
-                  const CaloSubdetectorGeometry* ebGeom, 
+    std::vector<DetId> XtalsInWindow() { return xtals_inWindow_; };
+    std::pair<double, double> GetMaximumDetaDphi(DetId* seedDetId,
+                                                 std::vector<DetId>* idMatrix,
+                                                 const CaloGeometry* geometry);
+    void DeepSCID(const CaloClusterPtrVector& clusters,
+                  int& nclusters,
+                  float& EoutsideDeepSC,
+                  const CaloTopology* topology,
+                  const CaloSubdetectorGeometry* ebGeom,
                   const CaloSubdetectorGeometry* eeGeom,
-                  const EcalRecHitCollection *recHitsEB, 
-                  const EcalRecHitCollection *recHitsEE);
-    void DeepSCID(const std::vector<const CaloCluster*>&, 
-		  int & nclusers,
-		  float & EoutsideDeepSC,
-                  const CaloTopology *topology, 
-                  const CaloSubdetectorGeometry* ebGeom, 
+                  const EcalRecHitCollection* recHitsEB,
+                  const EcalRecHitCollection* recHitsEE);
+    void DeepSCID(const std::vector<const CaloCluster*>&,
+                  int& nclusers,
+                  float& EoutsideDeepSC,
+                  const CaloTopology* topology,
+                  const CaloSubdetectorGeometry* ebGeom,
                   const CaloSubdetectorGeometry* eeGeom,
-                  const EcalRecHitCollection *recHitsEB, 
-                  const EcalRecHitCollection *recHitsEE); 
-    void DeepSCID(const reco::SuperCluster& sc, 
-		  int & nclusters, 
-		  float & EoutsideDeepSC,
-                  const CaloTopology *topology, 
-                  const CaloSubdetectorGeometry* ebGeom, 
+                  const EcalRecHitCollection* recHitsEB,
+                  const EcalRecHitCollection* recHitsEE);
+    void DeepSCID(const reco::SuperCluster& sc,
+                  int& nclusters,
+                  float& EoutsideDeepSC,
+                  const CaloTopology* topology,
+                  const CaloSubdetectorGeometry* ebGeom,
                   const CaloSubdetectorGeometry* eeGeom,
-                  const EcalRecHitCollection *recHitsEB, 
-                  const EcalRecHitCollection *recHitsEE);
-
+                  const EcalRecHitCollection* recHitsEB,
+                  const EcalRecHitCollection* recHitsEE);
 
     void DeepSCClust(const std::vector<CaloCluster>& clusters,
-                     const CaloTopology *topology, 
-                     const CaloSubdetectorGeometry* ebGeom, 
+                     const CaloTopology* topology,
+                     const CaloSubdetectorGeometry* ebGeom,
                      const CaloSubdetectorGeometry* eeGeom,
-                     const EcalRecHitCollection *recHitsEB, 
-                     const EcalRecHitCollection *recHitsEE,  
-		     std::vector<unsigned int>& insideDeep, 
-		     std::vector<unsigned int>& outsideDeep);
-    
+                     const EcalRecHitCollection* recHitsEB,
+                     const EcalRecHitCollection* recHitsEE,
+                     std::vector<unsigned int>& insideDeep,
+                     std::vector<unsigned int>& outsideDeep);
+
     void FillDeepSCVar(const std::vector<CaloCluster>& clusters,
-                       const CaloTopology *topology, 
-                       const CaloSubdetectorGeometry* ebGeom, 
+                       const CaloTopology* topology,
+                       const CaloSubdetectorGeometry* ebGeom,
                        const CaloSubdetectorGeometry* eeGeom,
-                       const EcalRecHitCollection *recHitsEB, 
-                       const EcalRecHitCollection *recHitsEE);
+                       const EcalRecHitCollection* recHitsEB,
+                       const EcalRecHitCollection* recHitsEE);
     //return Functions for DeepSC Variables:
-    float DeepSCE(){return Energy_In_DeepSC_;}
-    float DeepSCEOut(){return Energy_Outside_DeepSC_;}
-    float DeepSCEtOut(){return Et_Outside_DeepSC_;}
-    float LowestDeepClust(){return LowestClusterEInDeepSC_;}
-    int InsideDeep(){return included_;}
-    int OutsideDeep(){return excluded_;}
+    float DeepSCE() { return Energy_In_DeepSC_; }
+    float DeepSCEOut() { return Energy_Outside_DeepSC_; }
+    float DeepSCEtOut() { return Et_Outside_DeepSC_; }
+    float LowestDeepClust() { return LowestClusterEInDeepSC_; }
+    int InsideDeep() { return included_; }
+    int OutsideDeep() { return excluded_; }
 
   private:
-
     GlobalPoint cell_;
     std::string NNinput_string_Barrel_;
     std::string NNinput_string_Endcap_;
@@ -113,34 +130,32 @@ namespace reco {
     EcalClusterTools egmTools_;
     std::vector<DetId> xtals_inWindow_;
     std::vector<float> full5x5_locCov_;
-    std::vector<float> showerShapes_; 
-    std::pair<double,double> widths_;
-    std::vector<double> NNclusterVars_;  
+    std::vector<float> showerShapes_;
+    std::pair<double, double> widths_;
+    std::vector<double> NNclusterVars_;
     std::vector<double> vectorVar_;
-    std::vector<double> etaWindows_Barrel_; 
-    std::vector<double> etaWindows_Endcap_;  
-    std::vector<double> phiWindows_Barrel_; 
-    std::vector<double> phiWindows_Endcap_; 
+    std::vector<double> etaWindows_Barrel_;
+    std::vector<double> etaWindows_Endcap_;
+    std::vector<double> phiWindows_Barrel_;
+    std::vector<double> phiWindows_Endcap_;
     float Energy_In_DeepSC_;
     float Energy_Outside_DeepSC_;
     float Et_Outside_DeepSC_;
     float LowestClusterEInDeepSC_;
     int excluded_;
-    int included_; 
-    template<class RandomAccessPtrIterator>
+    int included_;
+    template <class RandomAccessPtrIterator>
     void DeepSCID(const RandomAccessPtrIterator&,
-		  const RandomAccessPtrIterator&,
-		  int& nclusters,
-		  float& EoutsideDeepSC,
-                  const CaloTopology *topology, 
-                  const CaloSubdetectorGeometry* ebGeom, 
-                  const CaloSubdetectorGeometry* eeGeom, 
-                  const EcalRecHitCollection *recHitsEB, 
-                  const EcalRecHitCollection *recHitsEE);
-    
+                  const RandomAccessPtrIterator&,
+                  int& nclusters,
+                  float& EoutsideDeepSC,
+                  const CaloTopology* topology,
+                  const CaloSubdetectorGeometry* ebGeom,
+                  const CaloSubdetectorGeometry* eeGeom,
+                  const EcalRecHitCollection* recHitsEB,
+                  const EcalRecHitCollection* recHitsEE);
   };
 
-  
-}
+}  // namespace reco
 
 #endif

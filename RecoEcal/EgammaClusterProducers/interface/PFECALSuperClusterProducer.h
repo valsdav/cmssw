@@ -27,11 +27,16 @@
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "RecoEcal/EgammaCoreTools/interface/EcalClusterTools.h"
 
+#include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
+
 /**\class PFECALSuperClusterProducer 
 
 \author Nicolas Chanon
 Additional authors for Mustache: Y. Gershtein, R. Patel, L. Gray
 \date   July 2012
+
+Addition of EcalSuperCluster with GraphNN by D. Valsecchi and B.Marzocchi. 
+\date  December 2021
 */
 
 class CaloSubdetectorTopology;
@@ -40,13 +45,17 @@ class DetId;
 class GBRForest;
 class GBRWrapperRcd;
 
-class PFECALSuperClusterProducer : public edm::stream::EDProducer<> {
+
+class PFECALSuperClusterProducer : public edm::stream::EDProducer<edm::GlobalCache<reco::SCProducerCache>> {
 public:
-  explicit PFECALSuperClusterProducer(const edm::ParameterSet&);
+  explicit PFECALSuperClusterProducer(const edm::ParameterSet&, const reco::SCProducerCache* gcache);
   ~PFECALSuperClusterProducer() override;
 
   void beginLuminosityBlock(const edm::LuminosityBlock&, const edm::EventSetup&) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
+
+  static std::unique_ptr<reco::SCProducerCache> initializeGlobalCache(const edm::ParameterSet&);
+  static void globalEndJob(const reco::SCProducerCache*){};
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 

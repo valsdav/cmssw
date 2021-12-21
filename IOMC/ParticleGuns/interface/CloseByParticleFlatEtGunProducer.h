@@ -3,30 +3,25 @@
 
 #include "IOMC/ParticleGuns/interface/BaseFlatGunProducer.h"
 
-namespace edm
-{
+namespace edm {
 
-  class CloseByParticleFlatEtGunProducer : public BaseFlatGunProducer
-  {
-
+  class CloseByParticleFlatEtGunProducer : public BaseFlatGunProducer {
   public:
-    CloseByParticleFlatEtGunProducer(const ParameterSet &);
+    CloseByParticleFlatEtGunProducer(const ParameterSet&);
     ~CloseByParticleFlatEtGunProducer() override;
 
   private:
+    void produce(Event& e, const EventSetup& es) override;
 
-    void produce(Event & e, const EventSetup& es) override;
-
-  protected :
-
+  protected:
     // data members
-    double fPtMax,fPtMin,fRMin,fRMax,fZMin,fZMax,fDelta,fPhiMin,fPhiMax;
+    double fPtMax, fPtMin, fRMin, fRMax, fZMin, fZMax, fDelta, fPhiMin, fPhiMax;
     int fNParticles;
     bool fPointing = false;
     bool fOverlapping = false;
     bool fRandomShoot = false;
     std::vector<int> fPartIDs;
   };
-}
+}  // namespace edm
 
 #endif
