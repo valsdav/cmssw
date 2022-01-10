@@ -248,7 +248,7 @@ void PFECALSuperClusterAlgo::loadAndSortPFClusters(const edm::Event& iEvent) {
   //Select PF clusters available for the clustering
   for (size_t i = 0; i < clusters.size(); ++i) {
     auto cluster = clusters.ptrAt(i);
-    LogDebug("PFClustering") << "Loading PFCluster i=" << cluster.key() << " energy=" << cluster->energy() << std::endl;
+    //LogDebug("PFClustering") << "Loading PFCluster i=" << cluster.key() << " energy=" << cluster->energy() << std::endl;
 
     // protection for sim clusters
     if (cluster->caloID().detectors() == 0 && cluster->hitsAndFractions().empty())
@@ -324,35 +324,35 @@ void PFECALSuperClusterAlgo::buildAllSuperClusters(CalibClusterPtrVector& cluste
     // make sure only seeds appear at the front of the list of clusters
     auto last_seed = std::stable_partition(clusters.begin(), clusters.end(), seedable);
 
-    ecalClusterGraph_ = new EcalClustersGraph(clusters,
-                                              std::distance(clusters.begin(), last_seed),
-                                              topology_,
-                                              ebGeom_,
-                                              eeGeom_,
-                                              barrelRecHits_,
-                                              endcapRecHits_, 
-                                              SCProducerCache_);
+    EcalClustersGraph ecalClusterGraph_ {clusters,
+                                        static_cast<int>(std::distance(clusters.begin(), last_seed)),
+                                        topology_,
+                                        ebGeom_,
+                                        eeGeom_,
+                                        barrelRecHits_,
+                                        endcapRecHits_, 
+                                        SCProducerCache_};
 
     // check which clusters are inside the dynamic windows ('1') and which are out ('0')
-    ecalClusterGraph_->initWindows();
+    ecalClusterGraph_.initWindows();
 
     // for each pfCluster inside a window ('1'),i.e. a matrix row, fill the variables needed for evaluating the GraphNet
-    ecalClusterGraph_->fillVariables();
+    ecalClusterGraph_.fillVariables();
 
     // for each window evaluate the GrpahNet score of any pfCluster inside the windwo ('1')
-    ecalClusterGraph_->evaluateScores();
+    ecalClusterGraph_.evaluateScores();
 
     // first keep all pfClusters with a score greater than a threshold (seed-eta and seed-et dependent),
     // then reduce elements and remove duplicates (pfClusters in many windows)
-    ecalClusterGraph_->setThresholds();
-    ecalClusterGraph_->selectClusters();
+    ecalClusterGraph_.setThresholds();
+    ecalClusterGraph_.selectClusters();
 
     // for each window make a superCluster out of the remaining pfClusters in the window ('1')
-    std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> windows = ecalClusterGraph_->getWindows();
+    std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> windows = ecalClusterGraph_.getWindows();
     for (unsigned int iw = 0; iw < windows.size(); iw++)
       buildSuperCluster(windows.at(iw).first, windows.at(iw).second);
 
-    ecalClusterGraph_->clearWindows();
+    ecalClusterGraph_.clearWindows();
   }
 }
 

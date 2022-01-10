@@ -55,8 +55,8 @@ namespace reco {
 
   private:
     CalibratedClusterPtrVector clusters_;
-    int nSeeds_;
-    int nCls_;
+    uint nSeeds_;
+    uint nCls_;
 
     // Adjacency matrix defining which clusters are inside the seeds windows.
     // row: seeds (Et ordered), column: clusters (Et ordered)
@@ -91,14 +91,30 @@ namespace reco {
                       const SCProducerCache* cache);
 
     std::vector<int> clusterPosition(const CaloCluster* cluster);
-    double deltaPhi(double seed_phi, double cluster_phi);
-    double deltaEta(double seed_eta, double cluster_eta);
+    
+    double deltaPhi(double seed_phi, double cluster_phi) {
+      double dphi = seed_phi - cluster_phi;
+      if (dphi > TMath::Pi())
+        dphi -= 2 * TMath::Pi();
+      if (dphi < -TMath::Pi())
+        dphi += 2 * TMath::Pi();
+      return dphi;
+    }
+
+    double deltaEta(double seed_eta, double cluster_eta) {
+      double deta = 0.;
+      if (seed_eta > 0.)
+        deta = cluster_eta - seed_eta;
+      if (seed_eta <= 0.)
+        deta = seed_eta - cluster_eta;
+      return deta;
+    }
     std::vector<double> dynamicWindow(double seedEta);
 
     std::pair<double, double> computeCovariances(const CaloCluster* cluster);
     std::vector<double> computeShowerShapes(const CaloCluster* cluster, bool full5x5);
     std::vector<double> computeVariables(const CaloCluster* seed, const CaloCluster* cluster);
-    std::vector<std::array<double, 4>> fillHits(const CaloCluster* cluster);
+    std::vector<std::vector<double>> fillHits(const CaloCluster* cluster);
     std::vector<double> computeWindowVariables(const std::vector<std::vector<double>>& clusters);
 
     void fillVariables();

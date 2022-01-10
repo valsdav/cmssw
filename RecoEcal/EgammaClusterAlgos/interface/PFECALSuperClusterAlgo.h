@@ -184,7 +184,6 @@ private:
   bool threshIsET_;
 
   const reco::SCProducerCache* SCProducerCache_;
-  EcalClustersGraph* ecalClusterGraph_;
 
   // OOT photons
   bool isOOTCollection_;

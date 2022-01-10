@@ -3,6 +3,7 @@
 #include <cmath>
 #include "TVector2.h"
 #include "TMath.h"
+#include <iostream>
 
 using namespace std;
 using namespace reco;
@@ -32,8 +33,14 @@ EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters,
   clusterMatrix_ = GraphMatrix<double>(nSeeds_, nCls_);
   Rnd = new TRandom();
 
-  //test
-  //std::cout << "ClustersGraph created. Nseeds " << nSeeds_ << ", nClusters " << nCls_ << endl;
+  // Prepare the batch size of the tensor inputs
+  inputs_.clustersX.resize(nSeeds_);
+  inputs_.windowX.resize(nSeeds_);
+  inputs_.hitsX.resize(nSeeds_);
+  inputs_.isSeed.resize(nSeeds_);
+  inputs_.nCls.resize(nSeeds_);
+
+  LogDebug("EcalClustersGraph") << "EcalClustersGraph created. nSeeds " << nSeeds_ << ", nClusters " << nCls_ << endl;
 }
 
 std::vector<int> EcalClustersGraph::clusterPosition(const CaloCluster* cluster) {
@@ -63,24 +70,6 @@ std::vector<int> EcalClustersGraph::clusterPosition(const CaloCluster* cluster) 
   coordinates[1] = iphi;
   coordinates[2] = iz;
   return coordinates;
-}
-
-double EcalClustersGraph::deltaPhi(double seed_phi, double cluster_phi) {
-  double dphi = seed_phi - cluster_phi;
-  if (dphi > TMath::Pi())
-    dphi -= 2 * TMath::Pi();
-  if (dphi < -TMath::Pi())
-    dphi += 2 * TMath::Pi();
-  return dphi;
-}
-
-double EcalClustersGraph::deltaEta(double seed_eta, double cluster_eta) {
-  double deta = 0.;
-  if (seed_eta > 0.)
-    deta = cluster_eta - seed_eta;
-  if (seed_eta <= 0.)
-    deta = seed_eta - cluster_eta;
-  return deta;
 }
 
 std::vector<double> EcalClustersGraph::dynamicWindow(double seedEta) {
@@ -128,14 +117,14 @@ std::vector<double> EcalClustersGraph::dynamicWindow(double seedEta) {
 }
 
 void EcalClustersGraph::initWindows() {
-  for (int is = 0; is < nSeeds_; is++) {
+  for (uint is = 0; is < nSeeds_; is++) {
     std::vector<int> seedLocal = clusterPosition((*clusters_.at(is)).the_ptr().get());
     double seed_eta = clusters_.at(is)->eta();
     double seed_phi = clusters_.at(is)->phi();
     inWindows_.Set(is, is, 1);
     std::vector<double> width = dynamicWindow(seed_eta);
 
-    for (int icl = is + 1; icl < nCls_; icl++) {
+    for (uint icl = is + 1; icl < nCls_; icl++) {
       std::vector<int> clusterLocal = clusterPosition((*clusters_.at(icl)).the_ptr().get());
       double cl_eta = clusters_.at(icl)->eta();
       double cl_phi = clusters_.at(icl)->phi();
@@ -177,7 +166,7 @@ std::vector<double> EcalClustersGraph::computeVariables(const CaloCluster* seed,
   cl_vars[9] = seed->energy() - cluster->energy();               //cl_dEnergy
   cl_vars[10] =
       (seed->energy() / TMath::CosH(seed->eta())) - (cluster->energy() / TMath::CosH(cluster->eta()));  //cl_dEt
-  cl_vars[12] = cluster->hitsAndFractions().size();                                                     // nxtals
+  cl_vars[11] = cluster->hitsAndFractions().size();                                                     // nxtals
   //   cl_vars[12] = showerShapes_[0]; //cl_r9
   //   cl_vars[13] = showerShapes_[1]; //cl_sigmaietaieta
   //   cl_vars[14] = showerShapes_[2]; //cl_sigmaietaiphi
@@ -338,12 +327,14 @@ std::vector<double> EcalClustersGraph::computeShowerShapes(const CaloCluster* cl
   return showerVars_;
 }
 
-std::vector<std::array<double, 4>> EcalClustersGraph::fillHits(const CaloCluster* cluster) {
-  std::vector<std::array<double, 4>> out;
-
+std::vector<std::vector<double>> EcalClustersGraph::fillHits(const CaloCluster* cluster) {
   const std::vector<std::pair<DetId, float>>& hitsAndFractions = cluster->hitsAndFractions();
+  std::vector<std::vector<double>> out (hitsAndFractions.size());
+  if (hitsAndFractions.size()==0){
+    edm::LogError("EcalClustersGraph") << "No hits in cluster!!";
+  }
   for (unsigned int i = 0; i < hitsAndFractions.size(); i++) {
-    std::array<double, 4> rechit;
+    std::vector<double> rechit (DeepSCConfiguration::nRechitsFeatures);
     if (hitsAndFractions[i].first.subdetId() == EcalBarrel) {
       double energy = (*recHitsEB_->find(hitsAndFractions[i].first)).energy();
       EBDetId eb_id(hitsAndFractions[i].first);
@@ -358,16 +349,17 @@ std::vector<std::array<double, 4>> EcalClustersGraph::fillHits(const CaloCluster
       EEDetId ee_id(hitsAndFractions[i].first);
       rechit[0] = ee_id.ix();     //ix
       rechit[1] = ee_id.iy();     //iy
-      rechit[2] = ee_id.zside();  //iz
-      // rechit[3] = energy; //energy
-      rechit[3] = energy * hitsAndFractions[i].second;  //energy * fraction
-      // rechit[5] = hitsAndFractions[i].second; //fraction
       if (ee_id.zside() < 0)
         rechit[2] = -1.;  //iz
       if (ee_id.zside() > 0)
         rechit[2] = +1.;  //iz
+      rechit[3] = energy * hitsAndFractions[i].second;  //energy * fraction
+      // rechit[3] = energy; //energy
+      // rechit[5] = hitsAndFractions[i].second; //fraction
+    }else{
+       edm::LogError("EcalClustersGraph") << "Rechit is not either EB or EE!!";
     }
-    out.push_back(rechit);
+    out[i] = rechit;
   }
   return out;
 }
@@ -411,47 +403,56 @@ std::vector<double> EcalClustersGraph::computeWindowVariables(const std::vector<
 }
 
 void EcalClustersGraph::fillVariables() {
-  // Clear input struct
-  inputs_.clustersX.clear();
-  inputs_.windowX.clear();
-  inputs_.hitsX.clear();
-  inputs_.isSeed.clear();
-  inputs_.nCls.clear();
-  inputs_.batchSize = 0;
 
+  LogDebug("EcalClustersGraph") << "Looping on seeds";
+  
   //Looping on all the seeds (window)
-  for (int is = 0; is < nSeeds_; is++) {
-    std::vector<std::vector<double>> clustersX;
-    std::vector<std::vector<std::array<double, 4>>> hitsX;
-    std::vector<double> windowX;
-    std::vector<bool> isSeed;
-    uint nCls = 0;
-
-    for (int ic = 0; ic < nCls_; ic++) {
+  for (uint is = 0; is < nSeeds_; is++) {
+    uint nClsInWindow = 0;
+    const auto seedPointer = (*clusters_.at(is)).the_ptr().get();
+    std::vector<std::vector<double>> unscaledClusterFeatures; 
+    for (uint ic = 0; ic < nCls_; ic++) {
       if (inWindows_.Get(is, ic) == 1) {
-        clustersX.push_back(computeVariables((*clusters_.at(is)).the_ptr().get(), (*clusters_.at(ic)).the_ptr().get()));
-        hitsX.push_back(fillHits((*clusters_.at(ic)).the_ptr().get()));
-        isSeed.push_back(ic == is);
-        nCls++;
+        const auto clPointer = (*clusters_.at(ic)).the_ptr().get();
+        const auto & rawClX = computeVariables(seedPointer, clPointer);
+        unscaledClusterFeatures.push_back(rawClX);
+        inputs_.clustersX[is].push_back(SCProducerCache_->deepSCEvaluator->scaleClusterFeatures(rawClX));
+        inputs_.hitsX[is].push_back(fillHits(clPointer));
+        inputs_.isSeed[is].push_back(ic == is);
+        nClsInWindow++;
       }
     }
-    // Scale the inputs
-    auto clustersX_scaled = SCProducerCache_->deepSCEvaluator->scaleClusterFeatures(clustersX);
-    auto windowX_scaled = SCProducerCache_->deepSCEvaluator->scaleWindowFeatures(computeWindowVariables(clustersX));
-    inputs_.clustersX.push_back(clustersX_scaled);
-    inputs_.windowX.push_back(windowX_scaled);
-    inputs_.hitsX.push_back(hitsX);
-    inputs_.isSeed.push_back(isSeed);
-    inputs_.nCls.push_back(nCls);
-    inputs_.batchSize = nSeeds_;
+    inputs_.windowX[is] = SCProducerCache_->deepSCEvaluator->scaleWindowFeatures(computeWindowVariables(unscaledClusterFeatures)); 
+    inputs_.nCls[is] = nClsInWindow;
   }
+
+  inputs_.batchSize = nSeeds_;
+
+  LogDebug("EcalClustersGraph") << "N. Windows: "<< inputs_.clustersX.size();
+  LogDebug("EcalClustersGraph") << "Check hits:  Seed | Cluster | Hits";
+  for (uint i = 0; i< nSeeds_;i++){
+    const size_t ncls = inputs_.hitsX[i].size();
+    for (size_t j = 0; j<ncls; j++){
+      const size_t nhits = inputs_.hitsX[i][j].size();
+      std::cout << i << "|" << j << "/" << ncls  << "|" << nhits  << std::endl;
+      std::cout << "\t" ;
+      for (size_t h=0; h<nhits; h++){
+          std::cout  << inputs_.hitsX[i][j][h][3] << ", ";
+      }
+      std::cout << std::endl;
+    }
+  }
+
+
+  LogDebug("EcalClustersGraph") << "End FillVariables";
+
 }
 
 void EcalClustersGraph::evaluateScores() {
   // Evaluate model
   auto scores = SCProducerCache_->deepSCEvaluator->evaluate(inputs_);
-  for (int i = 0; i < nSeeds_; ++i)
-    for (int j = 0; j < nCls_; ++j) {
+  for (uint i = 0; i < nSeeds_; ++i)
+    for (uint j = 0; j < nCls_; ++j) {
       if (i == j)
         scoreMatrix_.Set(i, j, 1.); // Take seed by default
       else {

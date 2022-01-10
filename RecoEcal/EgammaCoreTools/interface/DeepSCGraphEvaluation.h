@@ -30,7 +30,7 @@ namespace reco {
   struct DeepSCInputs {
     uint batchSize;
     std::vector<std::vector<std::vector<double>>> clustersX;
-    std::vector<std::vector<std::vector<std::array<double, DeepSCConfiguration::nRechitsFeatures>>>> hitsX;
+    std::vector<std::vector<std::vector<std::vector<double>>>> hitsX;
     std::vector<std::vector<double>> windowX;
     std::vector<std::vector<bool>> isSeed;
     std::vector<uint> nCls;
@@ -41,7 +41,7 @@ namespace reco {
     DeepSCGraphEvaluation(const DeepSCConfiguration&);
     ~DeepSCGraphEvaluation();
 
-    std::vector<std::vector<double>> scaleClusterFeatures(const std::vector<std::vector<double>>& inputs) const;
+    std::vector<double> scaleClusterFeatures(const std::vector<double>& input) const;
     std::vector<double> scaleWindowFeatures(const std::vector<double>& inputs) const;
 
     std::vector<std::vector<float>> evaluate(const DeepSCInputs& inputs) const;
