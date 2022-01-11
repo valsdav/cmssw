@@ -1,6 +1,7 @@
 #include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/FileInPath.h"
+#include "TMath.h"
 #include <iostream>
 #include <fstream>
 using namespace reco;
@@ -59,7 +60,6 @@ std::vector<double> DeepSCGraphEvaluation::scaleClusterFeatures(
   for (size_t i = 0; i < input.size(); i++) {
     const auto& [par1, par2] = scalerParamsClusters_[i];
     out[i] = (input[i] - par1) / par2;
-    std::cout << "Cluster feature: " << i << " " << input[i] << " --> " << out[i] << std::endl;
   }
   return out;
 }
@@ -69,7 +69,6 @@ std::vector<double> DeepSCGraphEvaluation::scaleWindowFeatures(const std::vector
   for (size_t i = 0; i < input.size(); i++) {
     const auto& [par1, par2] = scalerParamsWindows_[i];
     out[i] = (input[i] - par1) / par2;
-    std::cout << "Window feature: " << i << " " << input[i] << " --> " << out[i] << std::endl;
   }
   return out;
 }
@@ -84,18 +83,17 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
   tensorflow::Tensor windX {tensorflow::DT_FLOAT, {inputs.batchSize, cfg_.nWindowFeatures}};
   tensorflow::Tensor hitsX {tensorflow::DT_FLOAT, {inputs.batchSize, cfg_.maxNClusters, cfg_.maxNRechits, cfg_.nRechitsFeatures }};
   tensorflow::Tensor isSeedX {tensorflow::DT_FLOAT, {inputs.batchSize, cfg_.maxNClusters, 1}};
-  tensorflow::Tensor nClsMask {tensorflow::DT_FLOAT, {inputs.batchSize}};
+  tensorflow::Tensor nClsSize {tensorflow::DT_FLOAT, {inputs.batchSize}};
 
-  LogDebug("DeepSCGraphEvaluation") <<  "Preparing inputs for cluster features";
   float * C = clsX.flat<float>().data();
   // Look on batch dim
   for (const auto & cls_data : inputs.clustersX ){
     // Loop on clusters
-    for (size_t k = 0; k < cfg_.maxNClusters; k++, C++){ //--> note the double loop on the tensor pointer
+    for (size_t k = 0; k < cfg_.maxNClusters; k++){ 
       // Loop on features
       for (size_t z=0; z < cfg_.nClusterFeatures; z++, C++){//--> note the double loop on the tensor pointer
         if (k < cls_data.size()){
-          *C = cls_data[k][z];
+          *C = float(cls_data[k][z]);
         }else{ 
           *C = 0.;
         }
@@ -103,17 +101,15 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
     }
   }
 
-  LogDebug("DeepSCGraphEvaluation") <<  "Preparing inputs for window features";
   float * W = windX.flat<float>().data();
   // Look on batch dim
   for (const auto & wind_features : inputs.windowX ){
     // Loop on features
     for (size_t k = 0; k < cfg_.nWindowFeatures; k++, W++){ //--> note the double loop on the tensor pointer
-        *W = wind_features[k];
+        *W =  float(wind_features[k]);
     }
   }
 
-  LogDebug("DeepSCGraphEvaluation") <<  "Preparing inputs for Hits features";
   float * H = hitsX.flat<float>().data();
   size_t iW = -1;
   // Look on batch dim
@@ -121,49 +117,41 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
     iW++;
     size_t ncls_in_window = hits_data.size();
     // Loop on clusters
-    for (size_t k = 0; k < cfg_.maxNClusters; k++, H++){ //--> note the triple loop on the tensor pointer
+    for (size_t k = 0; k < cfg_.maxNClusters; k++){ //--> note the triple loop on the tensor pointer
       // Check padding
       size_t nhits_in_cluster;
       if (k < ncls_in_window)  nhits_in_cluster = hits_data[k].size();
       else                     nhits_in_cluster = 0;
       
       // Loop on hits
-      for (size_t j=0; j < cfg_.maxNRechits; j++, H++){//--> note the triple loop on the tensor pointer
+      for (size_t j=0; j < cfg_.maxNRechits; j++){//--> note the triple loop on the tensor pointer
         // Check the number of clusters and hits for padding
         bool ok = j < nhits_in_cluster;
-        // LogDebug("DeepSCGraphEvaluation") << "Window: "<<iW << " Cluster  "<< k << "/" 
-        //                   <<  ncls_in_window << " Hit" << j << "/" << nhits_in_cluster << ") -->"<< ok;
         // Loop on rechits features
         for (size_t z=0; z< cfg_.nRechitsFeatures; z++, H++){//--> note the triple loop on the tensor pointe
-          if (ok)  *H = hits_data[k][j][z];
+          if (ok)  *H = float( hits_data[k][j][z]);
           else    *H = 0.;
         }
       }
     }
   }
 
-  LogDebug("DeepSCGraphEvaluation") <<  "Preparing inputs for isSeed features";
   float * S = isSeedX.flat<float>().data();
   // Look on batch dim
   for (const auto & isSeed_data : inputs.isSeed ){
     // Loop on clusters
     for (size_t k = 0; k < cfg_.maxNClusters; k++, S++){ //--> note the double loop on the tensor pointer
       if (k < isSeed_data.size()){
-          *S = isSeed_data[k];
+          *S =  float(isSeed_data[k]);
       }else{
         *S = 0.;
       }
     }
   }
 
-  LogDebug("DeepSCGraphEvaluation") <<  "Preparing inputs for cluster-mask features";
-  float * M = nClsMask.flat<float>().data();
-  for (size_t k = 0; k < cfg_.maxNClusters; k++, M++){
-    if (k < inputs.nCls.size()) {
-      *M = inputs.nCls[k];
-    } else{
-      *M = 0.;
-    }
+  float * M = nClsSize.flat<float>().data();
+  for (size_t k = 0; k < inputs.batchSize; k++, M++){
+      *M =  float(inputs.clustersX[k].size());
   }
 
   std::vector<std::pair<std::string, tensorflow::Tensor>> feed_dict = {
@@ -171,7 +159,7 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
     { "input_2", windX},
     { "input_3", hitsX},
     { "input_4", isSeedX},
-    { "input_5", nClsMask}
+    { "input_5", nClsSize}
   };
 
   // prepare tensorflow outputs
@@ -180,16 +168,19 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
   std::vector<std::vector<float>> outputs_clustering;
   // // Run the models
   LogDebug("DeepSCGraphEvaluation") << "Run model";
-  tensorflow::run(session_,feed_dict, {"Identity", "Identity_1","Identity_2","Identity_3"}, &outputs_tf);
+  tensorflow::run(session_, feed_dict, {"Identity", "Identity_1","Identity_2","Identity_3"}, &outputs_tf);
   
   // Reading the 1st output: clustering probability
-  const auto& r = outputs_tf[0].tensor<float, 3>();
+  // const auto& r = outputs_tf[0].tensor<float, 3>();
+
+  float * y_cl = outputs_tf[0].flat<float>().data();
   // Iterate on the clusters for each window
   for (size_t b = 0; b< inputs.batchSize; b++) {
-    const auto & ncl = inputs.nCls[b];
-    std::vector<float> cl_output(ncl);
-    for (uint i = 0; i< ncl; i++){
-      cl_output[i] = r(b,i,0);
+    uint ncls = inputs.clustersX[b].size();
+    std::vector<float> cl_output(ncls);
+    for (size_t c = 0; c < ncls; c++){
+      float y = y_cl[b*cfg_.maxNClusters + c];
+      cl_output[c] = 1 / (1 + TMath::Exp(- y));
     }
     std::cout << b << ") ";
     std::for_each(cl_output.begin(), cl_output.end(), [](float x){std::cout <<x << " ";});

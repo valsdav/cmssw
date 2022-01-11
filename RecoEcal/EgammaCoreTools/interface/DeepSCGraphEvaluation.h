@@ -33,7 +33,6 @@ namespace reco {
     std::vector<std::vector<std::vector<std::vector<double>>>> hitsX;
     std::vector<std::vector<double>> windowX;
     std::vector<std::vector<bool>> isSeed;
-    std::vector<uint> nCls;
   };
 
   class DeepSCGraphEvaluation {
@@ -58,6 +57,7 @@ namespace reco {
 
     std::vector<std::pair<float, float>> scalerParamsClusters_;
     std::vector<std::pair<float, float>> scalerParamsWindows_;
+
   };
 
 
