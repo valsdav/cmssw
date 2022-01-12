@@ -341,6 +341,7 @@ void PFECALSuperClusterAlgo::buildAllSuperClusters(CalibClusterPtrVector& cluste
 
     // for each window evaluate the GrpahNet score of any pfCluster inside the windwo ('1')
     ecalClusterGraph_.evaluateScores();
+    ecalClusterGraph_.printDebugInfo();
 
     // first keep all pfClusters with a score greater than a threshold (seed-eta and seed-et dependent),
     // then reduce elements and remove duplicates (pfClusters in many windows)

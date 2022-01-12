@@ -63,8 +63,8 @@ namespace reco {
     GraphMatrix<int> inWindows_;
     // Adjacency matrix defining how much each cluster is linked to the seed
     // row: seeds (Et ordered), column: clusters (Et ordered)
-    GraphMatrix<double> scoreMatrix_;
-    GraphMatrix<double> clusterMatrix_;
+    GraphMatrix<float> scoreMatrix_;
+    GraphMatrix<float> clusterMatrix_;
 
     //To compute the input variables
     const CaloTopology* topology_;
@@ -76,7 +76,7 @@ namespace reco {
 
     std::vector<float> locCov_;
     std::pair<double, double> widths_;
-    std::vector<double> thresholds_;
+    std::vector<float> thresholds_;
     DeepSCInputs inputs_;
     TRandom* Rnd;
 
@@ -126,6 +126,8 @@ namespace reco {
     void setThresholds();
     void evaluateScores();
     void selectClusters();
+
+    void printDebugInfo();
     std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> getWindows();
   };
 

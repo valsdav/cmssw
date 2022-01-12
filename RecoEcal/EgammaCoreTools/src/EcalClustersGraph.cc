@@ -29,8 +29,8 @@ EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters,
       SCProducerCache_(cache) {
   nCls_ = clusters_.size();
   inWindows_ = GraphMatrix<int>(nSeeds_, nCls_);
-  scoreMatrix_ = GraphMatrix<double>(nSeeds_, nCls_);
-  clusterMatrix_ = GraphMatrix<double>(nSeeds_, nCls_);
+  scoreMatrix_ = GraphMatrix<float>(nSeeds_, nCls_);
+  clusterMatrix_ = GraphMatrix<float>(nSeeds_, nCls_);
   Rnd = new TRandom();
 
   // Prepare the batch size of the tensor inputs == number of windows
@@ -450,22 +450,47 @@ void EcalClustersGraph::fillVariables() {
 void EcalClustersGraph::evaluateScores() {
   // Evaluate model
   const auto & scores = SCProducerCache_->deepSCEvaluator->evaluate(inputs_);
-  for (uint i = 0; i < nSeeds_; ++i)
+  for (uint i = 0; i < nSeeds_; ++i){
+    uint k = 0;
     for (uint j = 0; j < nCls_; ++j) {
-      if (i == j)
-        scoreMatrix_.Set(i, j, 1.); // Take seed by default
-      else {
-        if (inWindows_.Get(i, j) == 1)
-          scoreMatrix_.Set(i, j, scores[i][j]);
-        else
+      if (inWindows_.Get(i, j) == 1){
+        scoreMatrix_.Set(i, j, scores[i][k]);
+        k++;
+      }
+      else{
           scoreMatrix_.Set(i, j, 0.);
       }
     }
+  }
+}
+
+void EcalClustersGraph::printDebugInfo(){
+  LogDebug("EcalClustersGraph") << "In window matrix:";
+  for (uint i = 0; i < nSeeds_; ++i){
+    for (uint j = 0; j < nCls_; ++j) {
+      std::cout << inWindows_.Get(i, j) << ",";
+    } 
+    std::cout << std::endl;
+  }
+  LogDebug("EcalClustersGraph") << "Score matrix:";
+  for (uint i = 0; i < nSeeds_; ++i){
+    for (uint j = 0; j < nCls_; ++j) {
+      std::cout << scoreMatrix_.Get(i, j) << ",";
+    } 
+    std::cout << std::endl;
+  }
+  LogDebug("EcalClustersGraph") << "Clusters ieta,iphi,iz,en";
+  for (uint j = 0; j < nCls_; ++j) {
+    const auto cluster = (*clusters_.at(j)).the_ptr().get();
+    std::vector<int> clusterLocal = clusterPosition(cluster);
+    std::cout << clusterLocal[0] << "," << clusterLocal[1]<< "," << clusterLocal[2] << "," << cluster->energy() << std::endl;
+  } 
+    
 }
 
 void EcalClustersGraph::setThresholds() {
   //test: place holder code
-  thresholds_ = std::vector<double>(nSeeds_, 0.1);
+  thresholds_ = std::vector<float>(nSeeds_, 0.5);
 }
 
 void EcalClustersGraph::selectClusters() {
@@ -473,9 +498,9 @@ void EcalClustersGraph::selectClusters() {
   clusterMatrix_ = scoreMatrix_.ReduceElements(1, 1, thresholds_, false);
   GraphMatrix clusterMatrixNoDuplicate_ = clusterMatrix_.RemoveDuplicates(1., false);
   for (size_type r = 0; r < clusterMatrixNoDuplicate_.nRows(); r++) {
-    std::vector<double> row = clusterMatrixNoDuplicate_.GetRow(r);
-    std::vector<double> subRow(row.begin(), row.begin() + clusterMatrixNoDuplicate_.nRows());
-    if (GraphMatrix<double>().AllZeros(&subRow))
+    std::vector<float> row = clusterMatrixNoDuplicate_.GetRow(r);
+    std::vector<float> subRow(row.begin(), row.begin() + clusterMatrixNoDuplicate_.nRows());
+    if (GraphMatrix<float>().AllZeros(&subRow))
       clusterMatrix_.SetRowZero(r);
   }
   clusterMatrix_ = clusterMatrix_.RemoveDuplicates(1., false);
@@ -485,7 +510,7 @@ void EcalClustersGraph::selectClusters() {
 std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> EcalClustersGraph::getWindows() {
   std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> windows;
   for (size_type ir = 0; ir < clusterMatrix_.nRows(); ir++) {
-    if (GraphMatrix<double>().AllZeros(clusterMatrix_.GetRow(ir)))
+    if (GraphMatrix<float>().AllZeros(clusterMatrix_.GetRow(ir)))
       continue;
 
     CalibratedClusterPtr seed = clusters_[ir];
