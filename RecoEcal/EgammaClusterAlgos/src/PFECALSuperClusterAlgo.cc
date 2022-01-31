@@ -84,48 +84,51 @@ namespace {
     return x_rechits_match / x_rechits_tot > majority;
   }
 
-  std::vector<int> clusterLocalPosition(const CalibClusterPtr& cluster, const CaloSubdetectorGeometry* ebGeom_, const CaloSubdetectorGeometry* eeGeom_)
-  {
-    std::vector<int> position; // ieta,iphi,iz or ix,iy,iz 
-    position.resize(3); 
+  std::vector<int> clusterLocalPosition(const CalibClusterPtr& cluster,
+                                        const CaloSubdetectorGeometry* ebGeom_,
+                                        const CaloSubdetectorGeometry* eeGeom_) {
+    std::vector<int> position;  // ieta,iphi,iz or ix,iy,iz
+    position.resize(3);
     reco::CaloCluster caloBC(*cluster->the_ptr());
     math::XYZPoint caloPos = caloBC.position();
-    if(cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL){
-       EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(),caloPos.y(),caloPos.z())));  
-       position[0]=id.ieta(); 
-       position[1]=id.ieta(); 
-       position[2]=0; 
-    }else if(cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP){
-       EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(),caloPos.y(),caloPos.z())));  
-       position[0]=id.ix(); 
-       position[1]=id.iy(); 
-       position[2]=id.zside(); 
+    if (cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL) {
+      EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
+      position[0] = id.ieta();
+      position[1] = id.ieta();
+      position[2] = 0;
+    } else if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP) {
+      EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
+      position[0] = id.ix();
+      position[1] = id.iy();
+      position[2] = id.zside();
     }
-    return position; 
+    return position;
   }
 
-  DetId clusterDetId(const CalibClusterPtr& cluster, const CaloSubdetectorGeometry* ebGeom_, const CaloSubdetectorGeometry* eeGeom_)
-  {
+  DetId clusterDetId(const CalibClusterPtr& cluster,
+                     const CaloSubdetectorGeometry* ebGeom_,
+                     const CaloSubdetectorGeometry* eeGeom_) {
     DetId clId;
     reco::CaloCluster caloBC(*cluster->the_ptr());
     math::XYZPoint caloPos = caloBC.position();
-    if(cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL){
-       EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(),caloPos.y(),caloPos.z())));  
-       clId = id;
-    }else if(cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP){
-       EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(),caloPos.y(),caloPos.z())));  
-       clId = id;
+    if (cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL) {
+      EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
+      clId = id;
+    } else if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP) {
+      EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
+      clId = id;
     }
     return clId;
   }
-  
-  double clusterZside(const CalibClusterPtr& cluster)
-  {
-    double zSide=0.;
-    if(cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta()<0.) zSide = -1.;   
-    if(cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta()>0.) zSide = +1.; 
-    return zSide;  
-  } 
+
+  double clusterZside(const CalibClusterPtr& cluster) {
+    double zSide = 0.;
+    if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta() < 0.)
+      zSide = -1.;
+    if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta() > 0.)
+      zSide = +1.;
+    return zSide;
+  }
 
   bool isClustered(const CalibClusterPtr& x,
                    const CalibClusterPtr seed,
@@ -153,14 +156,14 @@ namespace {
 
 }  // namespace
 
-PFECALSuperClusterAlgo::PFECALSuperClusterAlgo() : beamSpot_(nullptr) {}
+PFECALSuperClusterAlgo::PFECALSuperClusterAlgo(const reco::SCProducerCache* cache) : beamSpot_(nullptr),SCProducerCache_(cache) {}
 
 void PFECALSuperClusterAlgo::setPFClusterCalibration(const std::shared_ptr<PFEnergyCalibration>& calib) {
   _pfEnergyCalibration = calib;
 }
 
 void PFECALSuperClusterAlgo::setTokens(const edm::ParameterSet& iConfig, edm::ConsumesCollector&& cc) {
-  inputTagPFClusters_ = cc.consumes<edm::View<reco::PFCluster> >(iConfig.getParameter<edm::InputTag>("PFClusters"));
+  inputTagPFClusters_ = cc.consumes<edm::View<reco::PFCluster>>(iConfig.getParameter<edm::InputTag>("PFClusters"));
   inputTagPFClustersES_ =
       cc.consumes<reco::PFCluster::EEtoPSAssociation>(iConfig.getParameter<edm::InputTag>("ESAssociation"));
   inputTagBeamSpot_ = cc.consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("BeamSpot"));
@@ -182,11 +185,11 @@ void PFECALSuperClusterAlgo::setTokens(const edm::ParameterSet& iConfig, edm::Co
     regr_ = std::make_unique<SCEnergyCorrectorSemiParm>();
     regr_->setTokens(regconf, cc);
   }
- 
+
   if (isOOTCollection_ || _clustype == PFECALSuperClusterAlgo::kDeepSC) {  // OOT photons or DeepSC
-      //std::cout << "_clustype:" << _clustype << std::endl; 
-      inputTagBarrelRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("barrelRecHits"));
-      inputTagEndcapRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("endcapRecHits"));
+    //std::cout << "_clustype:" << _clustype << std::endl;
+    inputTagBarrelRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("barrelRecHits"));
+    inputTagEndcapRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("endcapRecHits"));
   }
 }
 
@@ -206,11 +209,11 @@ void PFECALSuperClusterAlgo::update(const edm::EventSetup& setup) {
   geometry_ = caloGeometryHandle_.product();
   ebGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
   eeGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
-  esGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalPreshower); 
+  esGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalPreshower);
 
   edm::ESHandle<CaloTopology> caloTopologyHandle_;
   setup.get<CaloTopologyRecord>().get(caloTopologyHandle_);
-  topology_ = caloTopologyHandle_.product(); 
+  topology_ = caloTopologyHandle_.product();
 }
 
 void PFECALSuperClusterAlgo::updateSCParams(const edm::EventSetup& setup) {
@@ -225,7 +228,7 @@ void PFECALSuperClusterAlgo::updateSCParams(const edm::EventSetup& setup) {
 void PFECALSuperClusterAlgo::loadAndSortPFClusters(const edm::Event& iEvent) {
   //load input collections
   //Load the pfcluster collections
-  edm::Handle<edm::View<reco::PFCluster> > pfclustersHandle;
+  edm::Handle<edm::View<reco::PFCluster>> pfclustersHandle;
   iEvent.getByToken(inputTagPFClusters_, pfclustersHandle);
 
   edm::Handle<reco::PFCluster::EEtoPSAssociation> psAssociationHandle;
@@ -254,7 +257,7 @@ void PFECALSuperClusterAlgo::loadAndSortPFClusters(const edm::Event& iEvent) {
   //Select PF clusters available for the clustering
   for (size_t i = 0; i < clusters.size(); ++i) {
     auto cluster = clusters.ptrAt(i);
-    LogDebug("PFClustering") << "Loading PFCluster i=" << cluster.key() << " energy=" << cluster->energy() << std::endl;
+    //LogDebug("PFClustering") << "Loading PFCluster i=" << cluster.key() << " energy=" << cluster->energy() << std::endl;
 
     // protection for sim clusters
     if (cluster->caloID().detectors() == 0 && cluster->hitsAndFractions().empty())
@@ -310,56 +313,60 @@ void PFECALSuperClusterAlgo::run() {
 }
 
 void PFECALSuperClusterAlgo::buildAllSuperClusters(CalibClusterPtrVector& clusters, double seedthresh) {
-
   auto seedable = std::bind(isSeed, _1, seedthresh, threshIsET_);
-  
-  if (_clustype != PFECALSuperClusterAlgo::kDeepSC)
-  {
-      // make sure only seeds appear at the front of the list of clusters
-      std::stable_partition(clusters.begin(), clusters.end(), seedable);
-        
-      // in each iteration we are working on a list that is already sorted
-      // in the cluster energy and remains so through each iteration
-      // NB: since clusters is sorted in loadClusters any_of has O(1)
-      //     timing until you run out of seeds!
-      while (std::any_of(clusters.cbegin(), clusters.cend(), seedable)) {
-             buildSuperCluster(clusters.front(), clusters);
-      }
+
+  if (_clustype != PFECALSuperClusterAlgo::kDeepSC) {
+    // make sure only seeds appear at the front of the list of clusters
+    std::stable_partition(clusters.begin(), clusters.end(), seedable);
+
+    // in each iteration we are working on a list that is already sorted
+    // in the cluster energy and remains so through each iteration
+    // NB: since clusters is sorted in loadClusters any_of has O(1)
+    //     timing until you run out of seeds!
+    while (std::any_of(clusters.cbegin(), clusters.cend(), seedable)) {
+      buildSuperCluster(clusters.front(), clusters);
+    }
 
   } else {
+    //TEST EcalClustersGraph
 
-      //TEST EcalClustersGraph
+    // make sure only seeds appear at the front of the list of clusters
+    auto last_seed = std::stable_partition(clusters.begin(), clusters.end(), seedable);
 
-      // make sure only seeds appear at the front of the list of clusters
-      auto last_seed = std::stable_partition(clusters.begin(),clusters.end(),seedable);
-      
-      ecalClusterGraph_ = new EcalClustersGraph(clusters, std::distance(clusters.begin(), last_seed), topology_, ebGeom_, eeGeom_, barrelRecHits_, endcapRecHits_);
+    EcalClustersGraph ecalClusterGraph_ {clusters,
+                                        static_cast<int>(std::distance(clusters.begin(), last_seed)),
+                                        topology_,
+                                        ebGeom_,
+                                        eeGeom_,
+                                        barrelRecHits_,
+                                        endcapRecHits_,
+                                        SCProducerCache_};
 
-      // check which clusters are inside the dynamic windows ('1') and which are out ('0')
-      ecalClusterGraph_->initWindows();
+    // check which clusters are inside the dynamic windows ('1') and which are out ('0')
+    ecalClusterGraph_.initWindows();
 
-      // for each pfCluster inside a window ('1'),i.e. a matrix row, fill the variables needed for evaluating the GraphNet 
-      ecalClusterGraph_->fillVariables();
+    // for each pfCluster inside a window ('1'),i.e. a matrix row, fill the variables needed for evaluating the GraphNet
+    ecalClusterGraph_.fillVariables();
 
-      // for each window evaluate the GrpahNet score of any pfCluster inside the windwo ('1')
-      ecalClusterGraph_->evaluateScores();   
+    // for each window evaluate the GrpahNet score of any pfCluster inside the windwo ('1')
+    ecalClusterGraph_.evaluateScores();
+    ecalClusterGraph_.printDebugInfo();
 
-      // first keep all pfClusters with a score greater than a threshold (seed-eta and seed-et dependent), 
-      // then reduce elements and remove duplicates (pfClusters in many windows)     
-      ecalClusterGraph_->setThresholds();
-      ecalClusterGraph_->selectClusters();
+    // first keep all pfClusters with a score greater than a threshold (seed-eta and seed-et dependent),
+    // then reduce elements and remove duplicates (pfClusters in many windows)
+    ecalClusterGraph_.setThresholds();
+    ecalClusterGraph_.selectClusters();
 
-      // for each window make a superCluster out of the remaining pfClusters in the window ('1')
-      std::vector<std::pair<CalibratedClusterPtr,CalibratedClusterPtrVector>> windows = ecalClusterGraph_->getWindows();
-      for(unsigned int iw=0; iw<windows.size(); iw++)
-          buildSuperCluster(windows.at(iw).first,windows.at(iw).second);
+    // for each window make a superCluster out of the remaining pfClusters in the window ('1')
+    std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> windows = ecalClusterGraph_.getWindows();
+    for (unsigned int iw = 0; iw < windows.size(); iw++)
+      buildSuperCluster(windows.at(iw).first, windows.at(iw).second);
 
-      ecalClusterGraph_->clearWindows();
+    ecalClusterGraph_.clearWindows();
   }
 }
 
-void PFECALSuperClusterAlgo::buildSuperCluster(CalibClusterPtr& seed, CalibClusterPtrVector& clusters) {  
-
+void PFECALSuperClusterAlgo::buildSuperCluster(CalibClusterPtr& seed, CalibClusterPtrVector& clusters) {
   CalibratedClusterPtrVector clustered;
 
   double etawidthSuperCluster = 0.0;
@@ -383,66 +390,66 @@ void PFECALSuperClusterAlgo::buildSuperCluster(CalibClusterPtr& seed, CalibClust
     default:
       break;
   }
-  
-  if(_clustype != PFECALSuperClusterAlgo::kDeepSC) 
-  {
-     auto isClusteredWithSeed = std::bind(isClustered,
-                                          _1,
-                                          seed,
-                                          _clustype,
-                                          mustacheSCParams_,
-                                          scDynamicDPhiParams_,
-                                          useDynamicDPhi_,
-                                          etawidthSuperCluster,
-                                          phiwidthSuperCluster);
 
-     auto matchesSeedByRecHit = std::bind(isLinkedByRecHit, _1, seed, satelliteThreshold_, fractionForMajority_, 0.1, 0.2);
+  if (_clustype != PFECALSuperClusterAlgo::kDeepSC) {
+    auto isClusteredWithSeed = std::bind(isClustered,
+                                         _1,
+                                         seed,
+                                         _clustype,
+                                         mustacheSCParams_,
+                                         scDynamicDPhiParams_,
+                                         useDynamicDPhi_,
+                                         etawidthSuperCluster,
+                                         phiwidthSuperCluster);
 
-     // this function shuffles the list of clusters into a list
-     // where all clustered sub-clusters are at the front
-     // and returns a pointer to the first unclustered cluster.
-     // The relative ordering of clusters is preserved
-     // (i.e. both resulting sub-lists are sorted by energy).
-     auto not_clustered = std::stable_partition(clusters.begin(), clusters.end(), isClusteredWithSeed);
-     // satellite cluster merging
-     // it was found that large clusters can split!
-     if (doSatelliteClusterMerge_) {
-         not_clustered = std::stable_partition(not_clustered, clusters.end(), matchesSeedByRecHit);
-     }
+    auto matchesSeedByRecHit =
+        std::bind(isLinkedByRecHit, _1, seed, satelliteThreshold_, fractionForMajority_, 0.1, 0.2);
 
-     if (verbose_) {
-         edm::LogInfo("PFClustering") << "Dumping cluster detail";
-         edm::LogVerbatim("PFClustering") << "\tPassed seed: e = " << seed->energy_nocalib() << " eta = " << seed->eta()
-                                          << " phi = " << seed->phi() << std::endl;
-         for (auto clus = clusters.cbegin(); clus != not_clustered; ++clus) {
-              edm::LogVerbatim("PFClustering") << "\t\tClustered cluster: e = " << (*clus)->energy_nocalib()
-                                       << " eta = " << (*clus)->eta() << " phi = " << (*clus)->phi() << std::endl;
-         }
-         for (auto clus = not_clustered; clus != clusters.end(); ++clus) {
-              edm::LogVerbatim("PFClustering") << "\tNon-Clustered cluster: e = " << (*clus)->energy_nocalib()
-                                       << " eta = " << (*clus)->eta() << " phi = " << (*clus)->phi() << std::endl;
-         }
-     }
+    // this function shuffles the list of clusters into a list
+    // where all clustered sub-clusters are at the front
+    // and returns a pointer to the first unclustered cluster.
+    // The relative ordering of clusters is preserved
+    // (i.e. both resulting sub-lists are sorted by energy).
+    auto not_clustered = std::stable_partition(clusters.begin(), clusters.end(), isClusteredWithSeed);
+    // satellite cluster merging
+    // it was found that large clusters can split!
+    if (doSatelliteClusterMerge_) {
+      not_clustered = std::stable_partition(not_clustered, clusters.end(), matchesSeedByRecHit);
+    }
 
-     if (not_clustered == clusters.begin()) {
-         if (dropUnseedable_) {
-             clusters.erase(clusters.begin());
-             return;
-         } else {
-             throw cms::Exception("PFECALSuperClusterAlgo::buildSuperCluster")
-             << "Cluster is not seedable!" << std::endl
-             << "\tNon-Clustered cluster: e = " << (*not_clustered)->energy_nocalib()
-             << " eta = " << (*not_clustered)->eta() << " phi = " << (*not_clustered)->phi() << std::endl;
-         }
-     }
-  
-     // move the clustered clusters out of available cluster list
-     // and into a temporary vector for building the SC
-     CalibratedClusterPtrVector clustered_tmp(clusters.begin(), not_clustered);
-     clustered = clustered_tmp;
-     clusters.erase(clusters.begin(), not_clustered);
+    if (verbose_) {
+      edm::LogInfo("PFClustering") << "Dumping cluster detail";
+      edm::LogVerbatim("PFClustering") << "\tPassed seed: e = " << seed->energy_nocalib() << " eta = " << seed->eta()
+                                       << " phi = " << seed->phi() << std::endl;
+      for (auto clus = clusters.cbegin(); clus != not_clustered; ++clus) {
+        edm::LogVerbatim("PFClustering") << "\t\tClustered cluster: e = " << (*clus)->energy_nocalib()
+                                         << " eta = " << (*clus)->eta() << " phi = " << (*clus)->phi() << std::endl;
+      }
+      for (auto clus = not_clustered; clus != clusters.end(); ++clus) {
+        edm::LogVerbatim("PFClustering") << "\tNon-Clustered cluster: e = " << (*clus)->energy_nocalib()
+                                         << " eta = " << (*clus)->eta() << " phi = " << (*clus)->phi() << std::endl;
+      }
+    }
+
+    if (not_clustered == clusters.begin()) {
+      if (dropUnseedable_) {
+        clusters.erase(clusters.begin());
+        return;
+      } else {
+        throw cms::Exception("PFECALSuperClusterAlgo::buildSuperCluster")
+            << "Cluster is not seedable!" << std::endl
+            << "\tNon-Clustered cluster: e = " << (*not_clustered)->energy_nocalib()
+            << " eta = " << (*not_clustered)->eta() << " phi = " << (*not_clustered)->phi() << std::endl;
+      }
+    }
+
+    // move the clustered clusters out of available cluster list
+    // and into a temporary vector for building the SC
+    CalibratedClusterPtrVector clustered_tmp(clusters.begin(), not_clustered);
+    clustered = clustered_tmp;
+    clusters.erase(clusters.begin(), not_clustered);
   } else {
-     clustered = clusters;
+    clustered = clusters;
   }
 
   // need the vector of raw pointers for a PF width class
