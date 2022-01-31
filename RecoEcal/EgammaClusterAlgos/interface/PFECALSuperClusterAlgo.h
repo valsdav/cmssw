@@ -49,6 +49,8 @@
 #include "CondFormats/EcalObjects/interface/EcalSCDynamicDPhiParameters.h"
 #include "CondFormats/DataRecord/interface/EcalSCDynamicDPhiParametersRcd.h"
 
+#include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
+
 #include <vector>
 #include <memory>
 
@@ -60,16 +62,18 @@
   \date July 2012
 */
 
+// class SCProducerCache;
+
 class PFECALSuperClusterAlgo {
 public:
-  enum clustering_type{kBOX=1, kMustache=2, kDeepSC=3};
+  enum clustering_type { kBOX = 1, kMustache = 2, kDeepSC = 3 };
   enum energy_weight { kRaw, kCalibratedNoPS, kCalibratedTotal };
 
   typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
   typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
 
   /// constructor
-  PFECALSuperClusterAlgo();
+  PFECALSuperClusterAlgo(const SCProducerCache* cache);
 
   void setVerbosityLevel(bool verbose) { verbose_ = verbose; }
 
@@ -107,6 +111,9 @@ public:
   void setCrackCorrections(bool applyCrackCorrections) { applyCrackCorrections_ = applyCrackCorrections; }
 
   void setTokens(const edm::ParameterSet&, edm::ConsumesCollector&&);
+
+  void setTensorflowObjects();
+
   void update(const edm::EventSetup&);
   void updateSCParams(const edm::EventSetup&);
 
@@ -129,10 +136,10 @@ private:
 
   const reco::BeamSpot* beamSpot_;
   const ESChannelStatus* channelStatus_;
-  const CaloGeometry *geometry_;
+  const CaloGeometry* geometry_;
   const CaloSubdetectorGeometry* ebGeom_;
   const CaloSubdetectorGeometry* eeGeom_;
-  const CaloSubdetectorGeometry* esGeom_; 
+  const CaloSubdetectorGeometry* esGeom_;
   const CaloTopology* topology_;
 
   const EcalMustacheSCParameters* mustacheSCParams_;
@@ -176,7 +183,7 @@ private:
   bool applyCrackCorrections_;
   bool threshIsET_;
 
-  EcalClustersGraph* ecalClusterGraph_;
+  const reco::SCProducerCache* SCProducerCache_;
 
   // OOT photons
   bool isOOTCollection_;

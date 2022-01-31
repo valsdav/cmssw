@@ -1,3 +1,4 @@
+
 #include "CondFormats/DataRecord/interface/GBRWrapperRcd.h"
 #include "CondFormats/GBRForest/interface/GBRForest.h"
 #include "DataFormats/CaloRecHit/interface/CaloCluster.h"
@@ -28,19 +29,25 @@
 #include "RecoEcal/EgammaClusterAlgos/interface/PFECALSuperClusterAlgo.h"
 #include "RecoEcal/EgammaClusterAlgos/interface/SCEnergyCorrectorSemiParm.h"
 #include "RecoEcal/EgammaCoreTools/interface/EcalClusterTools.h"
-
+#include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
 #include "TVector2.h"
 
 #include <memory>
 #include <vector>
 
-class PFECALSuperClusterProducer : public edm::stream::EDProducer<> {
+class PFECALSuperClusterProducer : public edm::stream::EDProducer<edm::GlobalCache<reco::SCProducerCache>> {
 public:
-  explicit PFECALSuperClusterProducer(const edm::ParameterSet&);
+    explicit PFECALSuperClusterProducer(const edm::ParameterSet&,  const reco::SCProducerCache* gcache);
   ~PFECALSuperClusterProducer() override;
 
   void beginLuminosityBlock(const edm::LuminosityBlock&, const edm::EventSetup&) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
+
+    static std::unique_ptr<reco::SCProducerCache> initializeGlobalCache(const edm::ParameterSet& config){
+        return std::make_unique<reco::SCProducerCache>(config);
+    }
+    
+ static void globalEndJob(const reco::SCProducerCache*){};
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -86,7 +93,8 @@ namespace {
   const std::string EnergyWeight__CalibratedTotal("CalibratedTotal");
 }  // namespace
 
-PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig) {
+PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig, const reco::SCProducerCache* gcache):
+    superClusterAlgo_(gcache) {
   verbose_ = iConfig.getUntrackedParameter<bool>("verbose", false);
 
   superClusterAlgo_.setUseRegression(iConfig.getParameter<bool>("useRegression"));
@@ -99,7 +107,7 @@ PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& 
     _theclusteringtype = PFECALSuperClusterAlgo::kBOX;
   } else if (_typename == ClusterType__Mustache) {
     _theclusteringtype = PFECALSuperClusterAlgo::kMustache;
-  } else if ( _typename == ClusterType__DeepSC ) {
+  } else if (_typename == ClusterType__DeepSC) {
     _theclusteringtype = PFECALSuperClusterAlgo::kDeepSC;
   } else {
     throw cms::Exception("InvalidClusteringType") << "You have not chosen a valid clustering type,"
@@ -335,71 +343,6 @@ void PFECALSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
 }
 
 void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-
-  //Mustache
-  edm::ParameterSetDescription desc1;
-  desc1.add<std::string>("PFSuperClusterCollectionEndcap", "particleFlowSuperClusterECALEndcap");
-  desc1.add<bool>("doSatelliteClusterMerge", false);
-  desc1.add<double>("thresh_PFClusterBarrel", 0.0);
-  desc1.add<std::string>("PFBasicClusterCollectionBarrel", "particleFlowBasicClusterECALBarrel");
-  desc1.add<bool>("useRegression", true);
-  desc1.add<double>("satelliteMajorityFraction", 0.5);
-  desc1.add<double>("thresh_PFClusterEndcap", 0.0);
-  desc1.add<edm::InputTag>("ESAssociation", edm::InputTag("particleFlowClusterECAL"));
-  desc1.add<std::string>("PFBasicClusterCollectionPreshower", "particleFlowBasicClusterECALPreshower");
-  desc1.add<bool>("use_preshower", true);
-  desc1.addUntracked<bool>("verbose", false);
-  desc1.add<double>("thresh_SCEt", 4.0);
-  desc1.add<double>("etawidth_SuperClusterEndcap", 0.04);
-  desc1.add<double>("phiwidth_SuperClusterEndcap", 0.6);
-  desc1.add<bool>("useDynamicDPhiWindow", true);
-  desc1.add<std::string>("PFSuperClusterCollectionBarrel", "particleFlowSuperClusterECALBarrel");
-  {
-    edm::ParameterSetDescription psd0;
-    psd0.add<bool>("isHLT", false);
-    psd0.add<bool>("isPhaseII", false); 
-    psd0.add<bool>("applySigmaIetaIphiBug", false);
-    psd0.add<edm::InputTag>("ecalRecHitsEE", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
-    psd0.add<edm::InputTag>("ecalRecHitsEB", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
-    psd0.add<std::string>("regressionKeyEB", "pfscecal_EBCorrection_offline_v2");
-    psd0.add<std::string>("regressionKeyEE", "pfscecal_EECorrection_offline_v2");
-    psd0.add<std::string>("uncertaintyKeyEB", "pfscecal_EBUncertainty_offline_v2");
-    psd0.add<std::string>("uncertaintyKeyEE", "pfscecal_EEUncertainty_offline_v2");
-    psd0.add<double>("regressionMinEB", 0.2);
-    psd0.add<double>("regressionMaxEB", 2.);
-    psd0.add<double>("regressionMinEE", 0.2);
-    psd0.add<double>("regressionMaxEE", 2.);
-    psd0.add<double>("uncertaintyMinEB", 0.0002);
-    psd0.add<double>("uncertaintyMaxEB", 0.5);
-    psd0.add<double>("uncertaintyMinEE", 0.0002);
-    psd0.add<double>("uncertaintyMaxEE", 0.5);
-    psd0.add<edm::InputTag>("vertexCollection", edm::InputTag("offlinePrimaryVertices"));
-    psd0.add<double>("eRecHitThreshold", 1.);
-    psd0.add<edm::InputTag>("hgcalRecHits", edm::InputTag(""));
-    psd0.add<double>("hgcalCylinderR", 2.7999999523162842);
-    desc1.add<edm::ParameterSetDescription>("regressionConfig", psd0);
-  }
-  desc1.add<bool>("applyCrackCorrections", false);
-  desc1.add<double>("satelliteClusterSeedThreshold", 50.0);
-  desc1.add<double>("etawidth_SuperClusterBarrel", 0.04);
-  desc1.add<std::string>("PFBasicClusterCollectionEndcap", "particleFlowBasicClusterECALEndcap");
-  desc1.add<edm::InputTag>("PFClusters", edm::InputTag("particleFlowClusterECAL"));
-  desc1.add<double>("thresh_PFClusterSeedBarrel", 1.0);
-  desc1.add<std::string>("ClusteringType", "Mustache");
-  desc1.add<std::string>("EnergyWeight", "Raw");
-  desc1.add<edm::InputTag>("BeamSpot", edm::InputTag("offlineBeamSpot"));
-  desc1.add<double>("thresh_PFClusterSeedEndcap", 1.0);
-  desc1.add<double>("phiwidth_SuperClusterBarrel", 0.6);
-  desc1.add<double>("thresh_PFClusterES", 0.0);
-  desc1.add<bool>("seedThresholdIsET", true);
-  desc1.add<bool>("isOOTCollection", false);
-  desc1.add<edm::InputTag>("barrelRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
-  desc1.add<edm::InputTag>("endcapRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
-  desc1.add<std::string>("PFSuperClusterCollectionEndcapWithPreshower",
-                        "particleFlowSuperClusterECALEndcapWithPreshower");
-  desc1.add<bool>("dropUnseedable", false);
-  descriptions.add("particleFlowSuperClusterECALMustache", desc1);
-
   //DeepSC
   edm::ParameterSetDescription desc2;
   desc2.add<std::string>("PFSuperClusterCollectionEndcap", "particleFlowDeepSuperClusterECALEndcap");
@@ -460,7 +403,73 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   desc2.add<edm::InputTag>("barrelRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
   desc2.add<edm::InputTag>("endcapRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
   desc2.add<std::string>("PFSuperClusterCollectionEndcapWithPreshower",
-                        "particleFlowDeepSuperClusterECALEndcapWithPreshower");
+                         "particleFlowDeepSuperClusterECALEndcapWithPreshower");
   desc2.add<bool>("dropUnseedable", false);
+  {
+    edm::ParameterSetDescription psd1;
+    psd1.add<std::string>("modelFile","RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/model.pb");
+    psd1.add<std::string>("scalerFileClusterFeatures", "RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/scaler_clusters.txt");
+    psd1.add<std::string>("scalerFileWindowFeatures", "RecoEcal/EgammaClusterProducers/data/DeepSCGraph//model/scaler_window.txt");
+    psd1.add<uint>("nClusterFeatures", 12 );
+    psd1.add<uint>("nWindowFeatures", 18);
+    psd1.add<uint>("maxNClusters", 45);
+    psd1.add<uint>("maxNRechits", 40);
+    desc2.add<edm::ParameterSetDescription>("deepSuperClusterGraphConfig", psd1);
+  }
   descriptions.add("particleFlowSuperClusterECALDeepSC", desc2);
+
+  //Mustache
+  edm::ParameterSetDescription desc1;
+  desc1.add<std::string>("PFSuperClusterCollectionEndcap", "particleFlowSuperClusterECALEndcap");
+  desc1.add<bool>("doSatelliteClusterMerge", false);
+  desc1.add<double>("thresh_PFClusterBarrel", 0.0);
+  desc1.add<std::string>("PFBasicClusterCollectionBarrel", "particleFlowBasicClusterECALBarrel");
+  desc1.add<bool>("useRegression", true);
+  desc1.add<double>("satelliteMajorityFraction", 0.5);
+  desc1.add<double>("thresh_PFClusterEndcap", 0.0);
+  desc1.add<edm::InputTag>("ESAssociation", edm::InputTag("particleFlowClusterECAL"));
+  desc1.add<std::string>("PFBasicClusterCollectionPreshower", "particleFlowBasicClusterECALPreshower");
+  desc1.add<bool>("use_preshower", true);
+  desc1.addUntracked<bool>("verbose", false);
+  desc1.add<double>("thresh_SCEt", 4.0);
+  desc1.add<double>("etawidth_SuperClusterEndcap", 0.04);
+  desc1.add<double>("phiwidth_SuperClusterEndcap", 0.6);
+  desc1.add<bool>("useDynamicDPhiWindow", true);
+  desc1.add<std::string>("PFSuperClusterCollectionBarrel", "particleFlowSuperClusterECALBarrel");
+  {
+    edm::ParameterSetDescription psd0;
+    psd0.add<bool>("isHLT", false);
+    psd0.add<bool>("applySigmaIetaIphiBug", false);
+    psd0.add<edm::InputTag>("ecalRecHitsEE", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
+    psd0.add<edm::InputTag>("ecalRecHitsEB", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
+    psd0.add<std::string>("regressionKeyEB", "pfscecal_EBCorrection_offline_v2");
+    psd0.add<std::string>("regressionKeyEE", "pfscecal_EECorrection_offline_v2");
+    psd0.add<std::string>("uncertaintyKeyEB", "pfscecal_EBUncertainty_offline_v2");
+    psd0.add<std::string>("uncertaintyKeyEE", "pfscecal_EEUncertainty_offline_v2");
+    psd0.add<edm::InputTag>("vertexCollection", edm::InputTag("offlinePrimaryVertices"));
+    psd0.add<double>("eRecHitThreshold", 1.);
+    desc1.add<edm::ParameterSetDescription>("regressionConfig", psd0);
+  }
+  desc1.add<bool>("applyCrackCorrections", false);
+  desc1.add<double>("satelliteClusterSeedThreshold", 50.0);
+  desc1.add<double>("etawidth_SuperClusterBarrel", 0.04);
+  desc1.add<std::string>("PFBasicClusterCollectionEndcap", "particleFlowBasicClusterECALEndcap");
+  desc1.add<edm::InputTag>("PFClusters", edm::InputTag("particleFlowClusterECAL"));
+  desc1.add<double>("thresh_PFClusterSeedBarrel", 1.0);
+  desc1.add<std::string>("ClusteringType", "Mustache");
+  desc1.add<std::string>("EnergyWeight", "Raw");
+  desc1.add<edm::InputTag>("BeamSpot", edm::InputTag("offlineBeamSpot"));
+  desc1.add<double>("thresh_PFClusterSeedEndcap", 1.0);
+  desc1.add<double>("phiwidth_SuperClusterBarrel", 0.6);
+  desc1.add<double>("thresh_PFClusterES", 0.0);
+  desc1.add<bool>("seedThresholdIsET", true);
+  desc1.add<bool>("isOOTCollection", false);
+  desc1.add<edm::InputTag>("barrelRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
+  desc1.add<edm::InputTag>("endcapRecHits", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
+  desc1.add<std::string>("PFSuperClusterCollectionEndcapWithPreshower",
+                         "particleFlowSuperClusterECALEndcapWithPreshower");
+  desc1.add<bool>("dropUnseedable", false);
+  descriptions.add("particleFlowSuperClusterECALMustache", desc1);
+
 }
+
