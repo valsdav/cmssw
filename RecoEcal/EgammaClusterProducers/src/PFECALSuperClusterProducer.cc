@@ -37,17 +37,17 @@
 
 class PFECALSuperClusterProducer : public edm::stream::EDProducer<edm::GlobalCache<reco::SCProducerCache>> {
 public:
-    explicit PFECALSuperClusterProducer(const edm::ParameterSet&,  const reco::SCProducerCache* gcache);
+  explicit PFECALSuperClusterProducer(const edm::ParameterSet&, const reco::SCProducerCache* gcache);
   ~PFECALSuperClusterProducer() override;
 
   void beginLuminosityBlock(const edm::LuminosityBlock&, const edm::EventSetup&) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-    static std::unique_ptr<reco::SCProducerCache> initializeGlobalCache(const edm::ParameterSet& config){
-        return std::make_unique<reco::SCProducerCache>(config);
-    }
-    
- static void globalEndJob(const reco::SCProducerCache*){};
+  static std::unique_ptr<reco::SCProducerCache> initializeGlobalCache(const edm::ParameterSet& config) {
+    return std::make_unique<reco::SCProducerCache>(config);
+  }
+
+  static void globalEndJob(const reco::SCProducerCache*){};
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -81,6 +81,7 @@ private:
 DEFINE_FWK_MODULE(PFECALSuperClusterProducer);
 
 using namespace std;
+
 using namespace edm;
 
 namespace {
@@ -93,8 +94,9 @@ namespace {
   const std::string EnergyWeight__CalibratedTotal("CalibratedTotal");
 }  // namespace
 
-PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig, const reco::SCProducerCache* gcache):
-    superClusterAlgo_(gcache) {
+PFECALSuperClusterProducer::PFECALSuperClusterProducer(const edm::ParameterSet& iConfig,
+                                                       const reco::SCProducerCache* gcache)
+    : superClusterAlgo_(gcache) {
   verbose_ = iConfig.getUntrackedParameter<bool>("verbose", false);
 
   superClusterAlgo_.setUseRegression(iConfig.getParameter<bool>("useRegression"));
@@ -364,7 +366,7 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   {
     edm::ParameterSetDescription psd0;
     psd0.add<bool>("isHLT", false);
-    psd0.add<bool>("isPhaseII", false); 
+    psd0.add<bool>("isPhaseII", false);
     psd0.add<bool>("applySigmaIetaIphiBug", false);
     psd0.add<edm::InputTag>("ecalRecHitsEE", edm::InputTag("ecalRecHit", "EcalRecHitsEE"));
     psd0.add<edm::InputTag>("ecalRecHitsEB", edm::InputTag("ecalRecHit", "EcalRecHitsEB"));
@@ -407,13 +409,16 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   desc2.add<bool>("dropUnseedable", false);
   {
     edm::ParameterSetDescription psd1;
-    psd1.add<std::string>("modelFile","RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/model.pb");
-    psd1.add<std::string>("scalerFileClusterFeatures", "RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/scaler_clusters.txt");
-    psd1.add<std::string>("scalerFileWindowFeatures", "RecoEcal/EgammaClusterProducers/data/DeepSCGraph//model/scaler_window.txt");
-    psd1.add<uint>("nClusterFeatures", 12 );
+    psd1.add<std::string>("modelFile", "RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/model.pb");
+    psd1.add<std::string>("scalerFileClusterFeatures",
+                          "RecoEcal/EgammaClusterProducers/data/DeepSCGraph/model/scaler_clusters.txt");
+    psd1.add<std::string>("scalerFileWindowFeatures",
+                          "RecoEcal/EgammaClusterProducers/data/DeepSCGraph//model/scaler_window.txt");
+    psd1.add<uint>("nClusterFeatures", 12);
     psd1.add<uint>("nWindowFeatures", 18);
     psd1.add<uint>("maxNClusters", 45);
     psd1.add<uint>("maxNRechits", 40);
+    psd1.add<uint>("collectionStrategy", 0);
     desc2.add<edm::ParameterSetDescription>("deepSuperClusterGraphConfig", psd1);
   }
   descriptions.add("particleFlowSuperClusterECALDeepSC", desc2);
@@ -470,6 +475,4 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
                          "particleFlowSuperClusterECALEndcapWithPreshower");
   desc1.add<bool>("dropUnseedable", false);
   descriptions.add("particleFlowSuperClusterECALMustache", desc1);
-
 }
-
