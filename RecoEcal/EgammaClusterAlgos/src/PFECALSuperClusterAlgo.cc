@@ -84,52 +84,6 @@ namespace {
     return x_rechits_match / x_rechits_tot > majority;
   }
 
-  std::vector<int> clusterLocalPosition(const CalibClusterPtr& cluster,
-                                        const CaloSubdetectorGeometry* ebGeom_,
-                                        const CaloSubdetectorGeometry* eeGeom_) {
-    std::vector<int> position;  // ieta,iphi,iz or ix,iy,iz
-    position.resize(3);
-    reco::CaloCluster caloBC(*cluster->the_ptr());
-    math::XYZPoint caloPos = caloBC.position();
-    if (cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL) {
-      EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
-      position[0] = id.ieta();
-      position[1] = id.ieta();
-      position[2] = 0;
-    } else if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP) {
-      EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
-      position[0] = id.ix();
-      position[1] = id.iy();
-      position[2] = id.zside();
-    }
-    return position;
-  }
-
-  DetId clusterDetId(const CalibClusterPtr& cluster,
-                     const CaloSubdetectorGeometry* ebGeom_,
-                     const CaloSubdetectorGeometry* eeGeom_) {
-    DetId clId;
-    reco::CaloCluster caloBC(*cluster->the_ptr());
-    math::XYZPoint caloPos = caloBC.position();
-    if (cluster->the_ptr()->layer() == PFLayer::ECAL_BARREL) {
-      EBDetId id(ebGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
-      clId = id;
-    } else if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP) {
-      EEDetId id(eeGeom_->getClosestCell(GlobalPoint(caloPos.x(), caloPos.y(), caloPos.z())));
-      clId = id;
-    }
-    return clId;
-  }
-
-  double clusterZside(const CalibClusterPtr& cluster) {
-    double zSide = 0.;
-    if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta() < 0.)
-      zSide = -1.;
-    if (cluster->the_ptr()->layer() == PFLayer::ECAL_ENDCAP && cluster->eta() > 0.)
-      zSide = +1.;
-    return zSide;
-  }
-
   bool isClustered(const CalibClusterPtr& x,
                    const CalibClusterPtr seed,
                    const PFECALSuperClusterAlgo::clustering_type type,

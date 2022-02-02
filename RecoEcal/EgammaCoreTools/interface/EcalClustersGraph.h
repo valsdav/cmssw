@@ -40,12 +40,14 @@
 #include "Geometry/EcalAlgo/interface/EcalEndcapGeometry.h"
 
 #include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
-#include "RecoEcal/EgammaCoreTools/interface/GraphMatrix.h"
+#include "RecoEcal/EgammaCoreTools/interface/GraphMap.h"
 #include "RecoEcal/EgammaCoreTools/interface/DeepSCGraphEvaluation.h"
 
 using namespace std;
 using namespace reco;
 namespace ublas = boost::numeric::ublas;
+
+
 
 namespace reco {
 
@@ -58,14 +60,6 @@ namespace reco {
     uint nSeeds_;
     uint nCls_;
 
-    // Adjacency matrix defining which clusters are inside the seeds windows.
-    // row: seeds (Et ordered), column: clusters (Et ordered)
-    GraphMatrix<int> inWindows_;
-    // Adjacency matrix defining how much each cluster is linked to the seed
-    // row: seeds (Et ordered), column: clusters (Et ordered)
-    GraphMatrix<float> scoreMatrix_;
-    GraphMatrix<float> clusterMatrix_;
-
     //To compute the input variables
     const CaloTopology* topology_;
     const CaloSubdetectorGeometry* ebGeom_;
@@ -74,11 +68,14 @@ namespace reco {
     const EcalRecHitCollection* recHitsEE_;
     const SCProducerCache* SCProducerCache_;
 
+    // GraphMap for handling all the windows and scores
+    const static inline std::vector<uint> NODES_CATEGORIES = {0,1};  // 0 =normal cluster, 1 seed
+    GraphMap graphMap_;
+
     std::array<float, 3> locCov_;
     std::pair<double, double> widths_;
     std::vector<float> thresholds_;
     DeepSCInputs inputs_;
-    TRandom* Rnd;
 
   public:
     EcalClustersGraph(CalibratedClusterPtrVector clusters,
@@ -130,6 +127,7 @@ namespace reco {
     void printDebugInfo();
     std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> getWindows();
   };
+
 
 }  // namespace reco
 #endif
