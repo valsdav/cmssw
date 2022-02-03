@@ -53,14 +53,11 @@ namespace reco {
 
     const DeepSCConfiguration cfg_;
     std::unique_ptr<tensorflow::GraphDef> graphDef_;
-    tensorflow::Session * session_;
+    tensorflow::Session* session_;
 
     std::vector<std::pair<float, float>> scalerParamsClusters_;
     std::vector<std::pair<float, float>> scalerParamsWindows_;
-
   };
-
-
 
   class SCProducerCache {
   public:

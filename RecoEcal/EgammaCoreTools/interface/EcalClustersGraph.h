@@ -47,8 +47,6 @@ using namespace std;
 using namespace reco;
 namespace ublas = boost::numeric::ublas;
 
-
-
 namespace reco {
 
   class EcalClustersGraph {
@@ -69,12 +67,12 @@ namespace reco {
     const SCProducerCache* SCProducerCache_;
 
     // GraphMap for handling all the windows and scores
-    const static inline std::vector<uint> NODES_CATEGORIES = {0,1};  // 0 =normal cluster, 1 seed
+    const static inline std::vector<uint> NODES_CATEGORIES = {0, 1};  // 0 =normal cluster, 1 seed
     GraphMap graphMap_;
-
+    std::vector<std::pair<uint, std::vector<uint>>> finalSuperClusters_;
     std::array<float, 3> locCov_;
     std::pair<double, double> widths_;
-    std::vector<float> thresholds_;
+    float threshold_;
     DeepSCInputs inputs_;
 
   public:
@@ -88,7 +86,7 @@ namespace reco {
                       const SCProducerCache* cache);
 
     std::vector<int> clusterPosition(const CaloCluster* cluster);
-    
+
     double deltaPhi(double seed_phi, double cluster_phi) {
       double dphi = seed_phi - cluster_phi;
       if (dphi > TMath::Pi())
@@ -127,7 +125,6 @@ namespace reco {
     void printDebugInfo();
     std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> getWindows();
   };
-
 
 }  // namespace reco
 #endif
