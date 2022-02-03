@@ -110,7 +110,8 @@ namespace {
 
 }  // namespace
 
-PFECALSuperClusterAlgo::PFECALSuperClusterAlgo(const reco::SCProducerCache* cache) : beamSpot_(nullptr),SCProducerCache_(cache) {}
+PFECALSuperClusterAlgo::PFECALSuperClusterAlgo(const reco::SCProducerCache* cache)
+    : beamSpot_(nullptr), SCProducerCache_(cache) {}
 
 void PFECALSuperClusterAlgo::setPFClusterCalibration(const std::shared_ptr<PFEnergyCalibration>& calib) {
   _pfEnergyCalibration = calib;
@@ -141,12 +142,12 @@ void PFECALSuperClusterAlgo::setTokens(const edm::ParameterSet& iConfig, edm::Co
   }
 
   if (isOOTCollection_ || _clustype == PFECALSuperClusterAlgo::kDeepSC) {  // OOT photons or DeepSC
-    
+
     inputTagBarrelRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("barrelRecHits"));
     inputTagEndcapRecHits_ = cc.consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("endcapRecHits"));
 
     caloTopologyToken_ = cc.esConsumes<CaloTopology, CaloTopologyRecord, edm::Transition::BeginLuminosityBlock>();
-    caloGeometryToken_ = cc.esConsumes<CaloGeometry, CaloGeometryRecord, edm::Transition::BeginLuminosityBlock>(); 
+    caloGeometryToken_ = cc.esConsumes<CaloGeometry, CaloGeometryRecord, edm::Transition::BeginLuminosityBlock>();
   }
 }
 
@@ -161,15 +162,14 @@ void PFECALSuperClusterAlgo::update(const edm::EventSetup& setup) {
   edm::ESHandle<ESChannelStatus> esChannelStatusHandle_ = setup.getHandle(esChannelStatusToken_);
   channelStatus_ = esChannelStatusHandle_.product();
 
-  
-  if (_clustype == PFECALSuperClusterAlgo::kDeepSC) {  // DeepSC uses geometry 
+  if (_clustype == PFECALSuperClusterAlgo::kDeepSC) {  // DeepSC uses geometry
     edm::ESHandle<CaloGeometry> caloGeometryHandle_ = setup.getHandle(caloGeometryToken_);
     geometry_ = caloGeometryHandle_.product();
     ebGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
     eeGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
     esGeom_ = caloGeometryHandle_->getSubdetectorGeometry(DetId::Ecal, EcalPreshower);
 
-    edm::ESHandle<CaloTopology> caloTopologyHandle_ = setup.getHandle(caloTopologyToken_); 
+    edm::ESHandle<CaloTopology> caloTopologyHandle_ = setup.getHandle(caloTopologyToken_);
     topology_ = caloTopologyHandle_.product();
   }
 }
@@ -291,7 +291,7 @@ void PFECALSuperClusterAlgo::buildAllSuperClusters(CalibClusterPtrVector& cluste
     // make sure only seeds appear at the front of the list of clusters
     auto last_seed = std::stable_partition(clusters.begin(), clusters.end(), seedable);
 
-    EcalClustersGraph ecalClusterGraph_ {clusters,
+    EcalClustersGraph ecalClusterGraph_{clusters,
                                         static_cast<int>(std::distance(clusters.begin(), last_seed)),
                                         topology_,
                                         ebGeom_,
