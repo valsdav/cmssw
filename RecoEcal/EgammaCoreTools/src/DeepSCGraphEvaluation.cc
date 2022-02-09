@@ -182,9 +182,6 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
       float y = y_cl[b * cfg_.maxNClusters + c];
       cl_output[c] = 1 / (1 + TMath::Exp(-y));
     }
-    std::cout << b << ") ";
-    std::for_each(cl_output.begin(), cl_output.end(), [](float x) { std::cout << x << " "; });
-    std::cout << std::endl;
     outputs_clustering.push_back(cl_output);
   }
 
@@ -194,7 +191,6 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
 // Cache for SuperCluster Producer containing Tensorflow objects
 SCProducerCache::SCProducerCache(const edm::ParameterSet& conf) {
   // Here we will have to load the DNN PFID if present in the config
-  reco::DeepSCConfiguration config;
   auto clustering_type = conf.getParameter<std::string>("ClusteringType");
   const auto& pset_dnn = conf.getParameter<edm::ParameterSet>("deepSuperClusterGraphConfig");
 
@@ -206,6 +202,8 @@ SCProducerCache::SCProducerCache(const edm::ParameterSet& conf) {
     config.nWindowFeatures = pset_dnn.getParameter<uint>("nWindowFeatures");
     config.maxNClusters = pset_dnn.getParameter<uint>("maxNClusters");
     config.maxNRechits = pset_dnn.getParameter<uint>("maxNRechits");
+    config.collectionStrategy = pset_dnn.getParameter<uint>("collectionStrategy");
     deepSCEvaluator = std::make_unique<DeepSCGraphEvaluation>(config);
   }
+  
 }
