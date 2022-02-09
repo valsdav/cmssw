@@ -25,6 +25,7 @@ namespace reco {
     static constexpr uint nRechitsFeatures = 4;
     uint maxNClusters;
     uint maxNRechits;
+    uint collectionStrategy;
   };
 
   struct DeepSCInputs {
@@ -63,6 +64,7 @@ namespace reco {
   public:
     SCProducerCache(const edm::ParameterSet& conf);
     std::unique_ptr<const DeepSCGraphEvaluation> deepSCEvaluator;
+    reco::DeepSCConfiguration config;
   };
 
 };  // namespace reco

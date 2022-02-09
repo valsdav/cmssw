@@ -11,10 +11,6 @@
 #include <vector>
 #include <array>
 #include <algorithm>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/matrix_proxy.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
 #include "TRandom.h"
 
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
@@ -45,8 +41,6 @@
 
 using namespace std;
 using namespace reco;
-namespace ublas = boost::numeric::ublas;
-
 namespace reco {
 
   class EcalClustersGraph {

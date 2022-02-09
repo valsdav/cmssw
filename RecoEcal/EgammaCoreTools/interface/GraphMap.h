@@ -1,6 +1,5 @@
 #ifndef RecoEcal_EgammaCoreTools_GraphMap_h
 #define RecoEcal_EgammaCoreTools_GraphMap_h
-#include "FWCore/Utilities/interface/Exception.h"
 
 #include <vector>
 #include <array>
@@ -9,15 +8,20 @@
 
 /*
  * Class handling a sparse graph of clusters.
- *
+ * 
+ * Author: D. Valsecchi
+ * Date:  08-02-2022
  */
 
 namespace reco {
+  
   class GraphMap {
+    
   public:
     GraphMap(uint nNodes, const std::vector<uint> &categories);
     ~GraphMap(){};
 
+    void printGraphMap();
     void addNode(const uint &index, const uint &category);
     void addNodes(const std::vector<uint> &indices, const std::vector<uint> &categories);
     void addEdge(const uint &i, const uint &j);
@@ -32,15 +36,27 @@ namespace reco {
     std::vector<float> getAdjMatrixCol(const uint &j) const;
 
     enum CollectionStrategy{
-      A, // Collect edgesOut ordered by cat1 index
-      B, // First order the edgesIn by score, keeping only the highest one
-         // Then collect the edgesOut ordered by cat1 index
-      C  // Like B, but while collecting cat1 nodes in other cat1 nodes,
-         // Collect also all the nodes connected to the secondary cat1 node.
+      A, // Starting from the highest energy seed (cat1), collect all the nodes. 
+    // Other seeds collected by higher energy seeds (cat1) are ignored 
+      B,     // First, for each cat0 node keep only the edge with the highest score.
+    // Then collect all the cat0 nodes around the cat1 seeds.
+    // Edges between the cat1 nodes are ignored.
+    // Finally, starting from the first cat1 node, look for linked cat1 secondary
+    // nodes and if they pass the threshold, merge their noded.
+      C,     // Like strategy D, but after solving the edges between the cat1 seeds,
+    // the cat0 nodes edges are cleaned to keep only the highest score link.
+    // Then proceed as strategy B.
+      D     // First, for each cat0 node keep only the edge with the highest score.
+    // Then proceed as strategy A, from the first cat1 node cascading to the others.
+    // Secondary cat1 nodes linked are absorbed and ignored in the next iteration:
+    // this implies that nodes connected to these cat1 nodes are lost.
     };
 
-    // Collection Algorithms
-    std::vector<std::pair<uint, std::vector<uint>>> collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
+    // Output of the collection  [{seed, [list of clusters]}]
+    typedef std::vector<std::pair<uint, std::vector<uint>>> GraphOutput;
+    typedef std::map<uint, std::vector<uint>> GraphOutputMap;    
+    // Apply the collection algorithms
+    const GraphOutput & collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
     
   private:
     uint nNodes_;
@@ -56,6 +72,19 @@ namespace reco {
     // Rows are interpreted as OUT edges
     // Columns are interpreted as IN edges
     std::map<std::pair<uint, uint>, float> adjMatrix_;
+
+    // Store for the graph collection result
+    GraphOutput graphOutput_;
+    
+    // Functions for the collection strategies
+    void collectCascading(float threshold);
+    void assignHighestScoreEdge();
+    // Return both the output graph with only cat1 nodes and a GraphOutputMap
+    // of the collected cat0 nodes from each cat1 one.
+    std::pair<GraphOutput, GraphOutputMap> collectSeparately(float threshold);
+    void mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, GraphOutputMap cat0GraphMap);
+    void resolveSuperNodesEdges(float threshold);
+
   };
 
 }  // namespace reco

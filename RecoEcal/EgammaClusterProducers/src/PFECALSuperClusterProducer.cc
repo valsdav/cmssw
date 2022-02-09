@@ -81,6 +81,7 @@ private:
 DEFINE_FWK_MODULE(PFECALSuperClusterProducer);
 
 using namespace std;
+
 using namespace edm;
 
 namespace {
@@ -417,6 +418,7 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
     psd1.add<uint>("nWindowFeatures", 18);
     psd1.add<uint>("maxNClusters", 45);
     psd1.add<uint>("maxNRechits", 40);
+    psd1.add<uint>("collectionStrategy", 0);
     desc2.add<edm::ParameterSetDescription>("deepSuperClusterGraphConfig", psd1);
   }
   descriptions.add("particleFlowSuperClusterECALDeepSC", desc2);
