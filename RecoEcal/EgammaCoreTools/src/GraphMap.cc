@@ -12,7 +12,7 @@ GraphMap::GraphMap(uint nNodes, const std::vector<uint> &categories) : nNodes_(n
   edgesOut_.resize(nNodes);
 }
 
-void GraphMap::addNode(const uint &index, const uint &category) {
+void GraphMap::addNode(const uint index, const uint category) {
   nodesCategories_[category].push_back(index);
   nodesCount_[category] += 1;
 }
@@ -23,7 +23,7 @@ void GraphMap::addNodes(const std::vector<uint> &indices, const std::vector<uint
   }
 }
 
-void GraphMap::addEdge(const uint &i, const uint &j) {
+void GraphMap::addEdge(const uint i, const uint j) {
   // The first index is the starting node of the outcoming edge.
   edgesOut_.at(i).push_back(j);
   edgesIn_.at(j).push_back(i);
@@ -31,28 +31,28 @@ void GraphMap::addEdge(const uint &i, const uint &j) {
   adjMatrix_[{i, j}] = 1.;
 }
 
-void GraphMap::setAdjMatrix(const uint &i, const uint &j, const float &score) {
+void GraphMap::setAdjMatrix(const uint i, const uint j, const float score) {
   adjMatrix_[{i, j}] = score;
 };
 
-void GraphMap::setAdjMatrixSym(const uint &i, const uint &j, const float &score) {
+void GraphMap::setAdjMatrixSym(const uint i, const uint j, const float score) {
   adjMatrix_[{i, j}] = score;
   adjMatrix_[{j, i}] = score;
 };
 
-const std::vector<uint> & GraphMap::getOutEdges(const uint &i) const {
+const std::vector<uint> & GraphMap::getOutEdges(const uint i) const {
   return edgesOut_.at(i);
 };
 
-const std::vector<uint> & GraphMap::getInEdges(const uint &i) const {
+const std::vector<uint> & GraphMap::getInEdges(const uint i) const {
   return edgesIn_.at(i);
 };
 
-uint GraphMap::getAdjMatrix(const uint &i, const uint &j) const {
+uint GraphMap::getAdjMatrix(const uint &i, const uint j) const {
   return adjMatrix_.at({i, j});
 };
 
-std::vector<float> GraphMap::getAdjMatrixRow(const uint &i) const {
+std::vector<float> GraphMap::getAdjMatrixRow(const uint i) const {
   std::vector<float> out;
   for (const auto &j : getOutEdges(i)) {
     out.push_back(adjMatrix_.at({i, j}));
@@ -60,7 +60,7 @@ std::vector<float> GraphMap::getAdjMatrixRow(const uint &i) const {
   return out;
 };
 
-std::vector<float> GraphMap::getAdjMatrixCol(const uint &j) const {
+std::vector<float> GraphMap::getAdjMatrixCol(const uint j) const {
   std::vector<float> out;
   for (const auto &i : getInEdges(j)) {
     out.push_back(adjMatrix_.at({i, j}));
@@ -103,7 +103,7 @@ void GraphMap::printGraphMap(){
 
 //--------------------------------------------------------------
 // Nodes collection algorithms
-const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrategy strategy, float threshold){
+const GraphMap::GraphOutput & GraphMap::collectNodes(const GraphMap::CollectionStrategy strategy, const float threshold){
   // Clear any stored graph output
   graphOutput_.clear();  
   
@@ -146,7 +146,7 @@ const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrateg
 //----------------------------------------
 // Implementation of single actions
 
-void GraphMap::collectCascading(float threshold){
+void GraphMap::collectCascading(const float threshold){
   // Starting from the highest energy seed (cat1), collect all the nodes. 
   // Other seeds collected by higher energy seeds (cat1) are ignored 
   const auto & superNodes = nodesCategories_[1];
@@ -207,7 +207,7 @@ void GraphMap::assignHighestScoreEdge(){
   }
 }
 
-std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSeparately(float threshold){
+std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSeparately(const float threshold){
   // Save a subgraph of only cat1 nodes, without self-loops
   GraphOutput  cat1NodesGraph;
   // Collect all the nodes around cat1, but not other cat1 nodes
@@ -250,7 +250,7 @@ std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSepa
 }
 
 
-void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, GraphOutputMap cat0GraphMap){
+void GraphMap::mergeSubGraphs(const float threshold, const GraphOutput& cat1NodesGraph, const GraphOutputMap& cat0GraphMap){
   // We have the graph between the cat1 nodes and a map of
   // cat0 nodes connected to each cat1 separately. 
   // Now we link them and build superGraphs starting from the first seed
@@ -262,7 +262,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
     // If it is, we collect the final list of nodes
     std::vector<uint> collectedNodes;
     // Take the previously connected cat0 nodes to the current cat1 one
-    const auto & cat0nodes = cat0GraphMap[s];
+    const auto & cat0nodes = cat0GraphMap.at(s);
     collectedNodes.insert(std::end(collectedNodes), std::begin(cat0nodes), std::end(cat0nodes));
     // Check connected cat1 nodes
     for (const auto & out_s: other_seeds){
@@ -271,7 +271,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
       if (adjMatrix_[{out_s, out_s}] > threshold &&  adjMatrix_[{s, out_s}] > threshold){
         LogTrace("GraphMap") <<"\tMerging nodes from seed: " << out_s;
         // Take the nodes already linked to this cat1 node
-        const auto & otherNodes = cat0GraphMap[out_s];
+        const auto & otherNodes = cat0GraphMap.at(out_s);
         // We don't check for duplicates because assignHighestScoreEdge() should
         // have been called already
         collectedNodes.insert(std::end(collectedNodes), std::begin(otherNodes), std::end(otherNodes));
@@ -286,7 +286,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
 }
 
 
-void GraphMap::resolveSuperNodesEdges(float threshold){
+void GraphMap::resolveSuperNodesEdges(const float threshold){
   LogTrace("GraphMap") << "Resolving superNodes" ;
   for(const auto & s : nodesCategories_[1]){
     LogTrace("GraphMap") << "seed: " << s ;

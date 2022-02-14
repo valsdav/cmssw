@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <array>
+#include <fstream>
 #include <algorithm>
 #include "TRandom.h"
 
@@ -69,6 +70,8 @@ namespace reco {
     float threshold_;
     DeepSCInputs inputs_;
 
+    std::ofstream outfile;
+    
   public:
     EcalClustersGraph(CalibratedClusterPtrVector clusters,
                       int nSeeds,

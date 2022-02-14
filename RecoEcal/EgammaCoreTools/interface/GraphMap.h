@@ -22,18 +22,18 @@ namespace reco {
     ~GraphMap(){};
 
     void printGraphMap();
-    void addNode(const uint &index, const uint &category);
+    void addNode(const uint index, const uint category);
     void addNodes(const std::vector<uint> &indices, const std::vector<uint> &categories);
-    void addEdge(const uint &i, const uint &j);
-    void setAdjMatrix(const uint &i, const uint &j, const float &score);
-    void setAdjMatrixSym(const uint &i, const uint &j, const float &score);
+    void addEdge(const uint i, const uint j);
+    void setAdjMatrix(const uint i, const uint j, const float score);
+    void setAdjMatrixSym(const uint i, const uint j, const float score);
 
     //Getters
-    const std::vector<uint> &getOutEdges(const uint &i) const;
-    const std::vector<uint> &getInEdges(const uint &i) const;
-    uint getAdjMatrix(const uint &i, const uint &j) const;
-    std::vector<float> getAdjMatrixRow(const uint &i) const;
-    std::vector<float> getAdjMatrixCol(const uint &j) const;
+    const std::vector<uint> &getOutEdges(const uint i) const;
+    const std::vector<uint> &getInEdges(const uint i) const;
+    uint getAdjMatrix(const uint &i, const uint j) const;
+    std::vector<float> getAdjMatrixRow(const uint i) const;
+    std::vector<float> getAdjMatrixCol(const uint j) const;
 
     enum CollectionStrategy{
       A, // Starting from the highest energy seed (cat1), collect all the nodes. 
@@ -56,7 +56,7 @@ namespace reco {
     typedef std::vector<std::pair<uint, std::vector<uint>>> GraphOutput;
     typedef std::map<uint, std::vector<uint>> GraphOutputMap;    
     // Apply the collection algorithms
-    const GraphOutput & collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
+    const GraphOutput & collectNodes(const GraphMap::CollectionStrategy strategy,const float threshold);
     
   private:
     uint nNodes_;
@@ -77,13 +77,14 @@ namespace reco {
     GraphOutput graphOutput_;
     
     // Functions for the collection strategies
-    void collectCascading(float threshold);
+    void collectCascading(const float threshold);
     void assignHighestScoreEdge();
     // Return both the output graph with only cat1 nodes and a GraphOutputMap
     // of the collected cat0 nodes from each cat1 one.
-    std::pair<GraphOutput, GraphOutputMap> collectSeparately(float threshold);
-    void mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, GraphOutputMap cat0GraphMap);
-    void resolveSuperNodesEdges(float threshold);
+    std::pair<GraphOutput, GraphOutputMap> collectSeparately(const float threshold);
+    void mergeSubGraphs(const float threshold, const GraphOutput& cat1NodesGraph, const GraphOutputMap& cat0GraphMap);
+    void resolveSuperNodesEdges(const float threshold);
+
 
   };
 

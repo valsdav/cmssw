@@ -4,6 +4,7 @@
 #include "TVector2.h"
 #include "TMath.h"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 using namespace reco;
@@ -44,6 +45,9 @@ EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters,
   }
 
   LogTrace("EcalClustersGraph") << "EcalClustersGraph created. nSeeds " << nSeeds_ << ", nClusters " << nCls_ << endl;
+#ifdef EDM_ML_DEBUG
+  outfile.open("graph_debug.txt", std::ios_base::app);
+#endif
 }
 
 std::vector<int> EcalClustersGraph::clusterPosition(const CaloCluster* cluster) {
@@ -120,6 +124,9 @@ std::vector<double> EcalClustersGraph::dynamicWindow(double seedEta) {
 }
 
 void EcalClustersGraph::initWindows() {
+#ifdef EDM_ML_DEBUG
+  outfile << "[";
+#endif 
   for (uint is = 0; is < nSeeds_; is++) {
     std::vector<int> seedLocal = clusterPosition((*clusters_.at(is)).the_ptr().get());
     double seed_eta = clusters_.at(is)->eta();
@@ -128,7 +135,7 @@ void EcalClustersGraph::initWindows() {
     // Add a self loop on the seed node
     graphMap_.addEdge(is, is);
 
-    for (uint icl = is + 1; icl < nCls_; icl++) {
+    for (uint icl = 0; icl < nCls_; icl++) {
       std::vector<int> clusterLocal = clusterPosition((*clusters_.at(icl)).the_ptr().get());
       double cl_eta = clusters_.at(icl)->eta();
       double cl_phi = clusters_.at(icl)->phi();
@@ -138,8 +145,18 @@ void EcalClustersGraph::initWindows() {
       if (seedLocal[2] == clusterLocal[2] && deta >= width[0] && deta <= width[1] && fabs(dphi) <= width[2]) {
         graphMap_.addEdge(is, icl);
       }
+
+      #ifdef EDM_ML_DEBUG
+      if (is==0){
+        outfile << "(" << icl << "," << clusterLocal[0] << "," << clusterLocal[1] << ","<< clusterLocal[] << ","
+                << (*clusters_.at(icl)).the_ptr().get()->energy()/ TMath::CosH(cl_eta) <<  "),";
+      }
+      #endif
     }
   }
+#ifdef EDM_ML_DEBUG
+  outfile << "]\n";
+#endif
 }
 
 void EcalClustersGraph::clearWindows() {
@@ -418,25 +435,14 @@ void EcalClustersGraph::fillVariables() {
 
   inputs_.batchSize = nSeeds_;
   LogTrace("EcalClustersGraph") << "N. Windows: " << inputs_.clustersX.size();
-
-  // LogDebug("EcalClustersGraph") << "Check hits:  Seed | Cluster | Hits";
-  // for (uint i = 0; i< nSeeds_;i++){
-  //   const size_t ncls = inputs_.hitsX[i].size();
-  //   for (size_t j = 0; j<ncls; j++){
-  //     const size_t nhits = inputs_.hitsX[i][j].size();
-  //     std::cout << i << "|" << j << "/" << ncls  << " (isSeed:" << inputs_.isSeed[i][j] << ") | " << nhits  << std::endl;
-  //     std::cout << "\t" ;
-  //     for (size_t h=0; h<nhits; h++){
-  //         std::cout  << inputs_.hitsX[i][j][h][3] << ", ";
-  //     }
-  //     std::cout << std::endl;
-  //   }
-  // }
 }
 
 void EcalClustersGraph::evaluateScores() {
   // Evaluate model
   const auto& scores = SCProducerCache_->deepSCEvaluator->evaluate(inputs_);
+#ifdef EDM_ML_DEBUG
+  outfile << "[";
+#endif
   for (uint i = 0; i < nSeeds_; ++i) {
     uint k = 0;
     for (auto const& j : graphMap_.getOutEdges(i)) {
@@ -444,9 +450,16 @@ void EcalClustersGraph::evaluateScores() {
       // Not symmetrically, in order to save multiple values for seeds in other
       // seeds windows.
       graphMap_.setAdjMatrix(i, j, scores[i][k]);
+#ifdef EDM_ML_DEBUG
+      // Output the graph in the txt file
+      outfile << "("<< i << "," << j << "," << scores[i][k] << "),";
+#endif
       k++;
     }
   }
+#ifdef EDM_ML_DEBUG
+  outfile << "]\n";
+#endif
 }
 
 void EcalClustersGraph::printDebugInfo() {
@@ -479,12 +492,18 @@ void EcalClustersGraph::setThresholds() {
 void EcalClustersGraph::selectClusters() {
   finalSuperClusters_ = graphMap_.collectNodes(static_cast<GraphMap::CollectionStrategy>(SCProducerCache_->config.collectionStrategy), threshold_);
   LogTrace("EcalClustersGraph") << "Final SuperClusters";
+
+#ifdef EDM_ML_DEBUG
+  outfile << "[";
   for (const auto & [sc, cls] : finalSuperClusters_){
     LogTrace("EcalClustersGraph")  << "Seed: " << sc << "\t"; 
     for (const auto & c : cls){
-      LogTrace("EcalClustersGraph" ) << c << " "; 
+      LogTrace("EcalClustersGraph" ) << c << " ";
+      outfile << "(" << sc << "," << c <<  "),";
     }
   }
+  outfile << "]\n";
+#endif
 }
 
 std::vector<std::pair<CalibratedClusterPtr, CalibratedClusterPtrVector>> EcalClustersGraph::getWindows() {
