@@ -25,11 +25,11 @@ namespace reco {
     static constexpr uint nRechitsFeatures = 4;
     uint maxNClusters;
     uint maxNRechits;
+    uint batchSize;
     uint collectionStrategy;
   };
 
   struct DeepSCInputs {
-    uint batchSize;
     std::vector<std::vector<std::vector<double>>> clustersX;
     std::vector<std::vector<std::vector<std::vector<double>>>> hitsX;
     std::vector<std::vector<double>> windowX;
@@ -58,6 +58,13 @@ namespace reco {
 
     std::vector<std::pair<float, float>> scalerParamsClusters_;
     std::vector<std::pair<float, float>> scalerParamsWindows_;
+
+    tensorflow::Tensor clsX_;
+    tensorflow::Tensor windX_;
+    tensorflow::Tensor hitsX_;
+    tensorflow::Tensor isSeedX_;
+    tensorflow::Tensor nClsSize_;
+
   };
 
   class SCProducerCache {

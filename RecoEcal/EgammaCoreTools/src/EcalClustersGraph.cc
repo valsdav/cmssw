@@ -127,6 +127,7 @@ void EcalClustersGraph::initWindows() {
 #ifdef EDM_ML_DEBUG
   outfile << "[";
 #endif 
+    
   for (uint is = 0; is < nSeeds_; is++) {
     std::vector<int> seedLocal = clusterPosition((*clusters_.at(is)).the_ptr().get());
     double seed_eta = clusters_.at(is)->eta();
@@ -148,7 +149,7 @@ void EcalClustersGraph::initWindows() {
 
       #ifdef EDM_ML_DEBUG
       if (is==0){
-        outfile << "(" << icl << "," << clusterLocal[0] << "," << clusterLocal[1] << ","<< clusterLocal[] << ","
+        outfile << "(" << icl << "," << clusterLocal[0] << "," << clusterLocal[1] << ","<< clusterLocal[2] << ","
                 << (*clusters_.at(icl)).the_ptr().get()->energy()/ TMath::CosH(cl_eta) <<  "),";
       }
       #endif
@@ -432,8 +433,6 @@ void EcalClustersGraph::fillVariables() {
     inputs_.windowX[is] =
         SCProducerCache_->deepSCEvaluator->scaleWindowFeatures(computeWindowVariables(unscaledClusterFeatures));
   }
-
-  inputs_.batchSize = nSeeds_;
   LogTrace("EcalClustersGraph") << "N. Windows: " << inputs_.clustersX.size();
 }
 
