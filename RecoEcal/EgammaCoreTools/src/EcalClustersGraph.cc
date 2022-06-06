@@ -142,7 +142,7 @@ void EcalClustersGraph::initWindows() {
     // Add a self loop on the seed node
     graphMap_.addEdge(is, is);
 
-    for (uint icl = 0; icl < nCls_; icl++) {
+    for (uint icl = is + 1; icl < nCls_; icl++) {
       if (is == icl)
         continue;
       const auto& clusterLocal = clusterPosition((*clusters_[icl]).ptr().get());
