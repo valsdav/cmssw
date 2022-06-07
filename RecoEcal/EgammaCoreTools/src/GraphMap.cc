@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 using namespace reco;
 
@@ -60,37 +61,6 @@ std::vector<float> GraphMap::getAdjMatrixCol(const uint j) const {
   return out;
 };
 
-//=================================================
-// Debugging info
-void GraphMap::printGraphMap() {
-  edm::LogVerbatim("GraphMap") << "OUT edges" << std::endl;
-  uint seed = 0;
-  for (const auto &s : edgesOut_) {
-    edm::LogVerbatim("GraphMap") << "cl: " << seed << " --> ";
-    for (const auto &e : s) {
-      edm::LogVerbatim("GraphMap") << e << " (" << adjMatrix_[{seed, e}] << ") ";
-    }
-    edm::LogVerbatim("GraphMap") << std::endl;
-    seed++;
-  }
-  edm::LogVerbatim("GraphMap") << std::endl << "IN edges" << std::endl;
-  seed = 0;
-  for (const auto &s : edgesIn_) {
-    edm::LogVerbatim("GraphMap") << "cl: " << seed << " <-- ";
-    for (const auto &e : s) {
-      edm::LogVerbatim("GraphMap") << e << " (" << adjMatrix_[{e, seed}] << ") ";
-    }
-    edm::LogVerbatim("GraphMap") << std::endl;
-    seed++;
-  }
-  edm::LogVerbatim("GraphMap") << std::endl << "AdjMatrix" << std::endl;
-  for (const auto &s : nodesCategories_[NodeCategory::kSeed]) {
-    for (size_t n = 0; n < nNodes_; n++) {
-      edm::LogVerbatim("GraphMap") << std::setprecision(2) << adjMatrix_[{s, n}] << " ";
-    }
-    edm::LogVerbatim("GraphMap") << std::endl;
-  }
-}
 
 //--------------------------------------------------------------
 // Nodes collection algorithms
@@ -211,8 +181,9 @@ std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSepa
       continue;
     // Loop on the out-coming edges
     for (const auto &out : edgesOut_[s]) {
+      // Check if it is another seed
+      // if out is a seed adjMatrix[self-loop] > 0
       if (out != s && adjMatrix_[{out, out}] > 0) {
-        // Check if it is another seed
         // DO NOT CHECK the score of the edge, it will be checked during the merging
         collectedSeeds.push_back(out);
         // No self-loops are saved in the seed graph output
@@ -270,6 +241,9 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput seedsGraph, GraphOutp
         // Other seeds linked to the disable seed won't be collected, but analyzed independently.
       }
     }
+    // Now remove the current seed from the available ones,
+    // if not other seeds could take it and we would have a double use of objects.
+    adjMatrix_[{s,s}] = 0;
     graphOutput_.push_back({s, collectedNodes});
   }
 }
@@ -298,4 +272,62 @@ void GraphMap::resolveSuperNodesEdges(float threshold) {
       }
     }
   }
+}
+
+
+//=================================================
+// Debugging info
+void GraphMap::printGraphMap() {
+  edm::LogVerbatim("GraphMap") << "OUT edges" << std::endl;
+  uint seed = 0;
+  for (const auto &s : edgesOut_) {
+    edm::LogVerbatim("GraphMap") << "cl: " << seed << " --> ";
+    for (const auto &e : s) {
+      edm::LogVerbatim("GraphMap") << e << " (" << adjMatrix_[{seed, e}] << ") ";
+    }
+    edm::LogVerbatim("GraphMap") << std::endl;
+    seed++;
+  }
+  edm::LogVerbatim("GraphMap") << std::endl << "IN edges" << std::endl;
+  seed = 0;
+  for (const auto &s : edgesIn_) {
+    edm::LogVerbatim("GraphMap") << "cl: " << seed << " <-- ";
+    for (const auto &e : s) {
+      edm::LogVerbatim("GraphMap") << e << " (" << adjMatrix_[{e, seed}] << ") ";
+    }
+    edm::LogVerbatim("GraphMap") << std::endl;
+    seed++;
+  }
+  edm::LogVerbatim("GraphMap") << std::endl << "AdjMatrix" << std::endl;
+  for (const auto &s : nodesCategories_[NodeCategory::kSeed]) {
+    for (size_t n = 0; n < nNodes_; n++) {
+      edm::LogVerbatim("GraphMap") << std::setprecision(2) << adjMatrix_[{s, n}] << " ";
+    }
+    edm::LogVerbatim("GraphMap") << std::endl;
+  }
+}
+
+std::string GraphMap::dumpDebugInfo(){
+  std::stringstream out;
+  out << "- out_links: " << std::endl;
+  uint seed = 0;
+  for (const auto &s : edgesOut_) {
+    out << "    seed : [" << seed << std::endl;
+    out << "    cls: " << stdl::endl;
+    for (const auto &e : s) {
+      out << "      - cl: " << e << std::endl
+          << "        score: " << adjMatrix_[{seed, e}] << std::endl;
+    }
+    seed++;
+  }
+  out << "  in_links:" << std::endl;
+  uint cl = 0;
+  for (const auto &s : edgesIn_) {
+    out << "    cl: " << cl << std::endl;
+    for (const auto &e : s) {
+      out << "     - seed: " << e << std::endl;
+    }
+    cl++;
+  }
+  return out.str();
 }

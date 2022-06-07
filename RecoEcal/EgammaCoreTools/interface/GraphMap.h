@@ -5,6 +5,7 @@
 #include <array>
 #include <map>
 #include <algorithm>
+#include <string>
 
 /*
  * Class handling a sparse graph of clusters.
@@ -27,7 +28,8 @@ namespace reco {
     void setAdjMatrix(const uint i, const uint j, const float score);
     void setAdjMatrixSym(const uint i, const uint j, const float score);
     void printGraphMap();
-
+    std::string dumpDebugInfo();
+    
     //Getters
     const std::vector<uint> &getOutEdges(const uint i) const;
     const std::vector<uint> &getInEdges(const uint i) const;

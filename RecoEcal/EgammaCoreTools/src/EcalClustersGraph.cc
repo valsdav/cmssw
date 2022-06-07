@@ -1,5 +1,7 @@
 #include "RecoEcal/EgammaCoreTools/interface/EcalClustersGraph.h"
 #include <cmath>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 using namespace reco;
@@ -374,6 +376,7 @@ void EcalClustersGraph::fillVariables() {
     inputs_.hitsX[is].reserve(ncls);
     inputs_.isSeed[is].reserve(ncls);
     unscaledClusterFeatures.reserve(ncls);
+
     // Loop on all the clusters
     for (const auto ic : outEdges) {
       LogTrace("EcalClustersGraph") << "seed: " << is << ", out edge --> " << ic;
@@ -419,8 +422,25 @@ void EcalClustersGraph::setThresholds() {
 }
 
 void EcalClustersGraph::selectClusters() {
+  std::ofstream outFile_before, outFile_after, outFile_result;
+  outFile_before.open("ecalclustergraph_output_before_log.yaml", std::ios_base::app);
+  outFile_after.open("ecalclustergraph_output_after_log.yaml", std::ios_base::app);
+  outFile_result.open("ecalclustergraph_output_after_log.yaml", std::ios_base::app);
+  outFile_defore << graphMap_.dumpDebugInfo();
   // Collect the final superClusters as subgraphs
   graphMap_.collectNodes(strategy_, threshold_);
+  outFile_after << graphMap_.dumpDebugInfo();
+  outFile_result << "- results:"
+  const auto& finalSuperClusters_ = graphMap_.getGraphOutput();
+  for (const auto& [is, cls] : finalSuperClusters_) {
+    outFile_result << "  - seed: " << is << std::endl;
+    for (const auto& ic : cls) {
+      outFile_result << "     - " << ic << std::endl;
+    }
+  }
+  outFile_before.close();
+  outFile_after.close();
+  outFile_result.close();
 }
 
 EcalClustersGraph::EcalGraphOutput EcalClustersGraph::getGraphOutput() {
