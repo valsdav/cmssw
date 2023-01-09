@@ -5,10 +5,9 @@ using namespace std;
 using namespace reco;
 using namespace reco::DeepSCInputs;
 
-typedef std::shared_ptr<CalibratedPFCluster> CalibratedClusterPtr;
-typedef std::vector<CalibratedClusterPtr> CalibratedClusterPtrVector;
+typedef std::vector<CalibratedPFCluster> CalibratedPFClusterVector;
 
-EcalClustersGraph::EcalClustersGraph(CalibratedClusterPtrVector clusters,
+EcalClustersGraph::EcalClustersGraph(CalibratedPFClusterVector clusters,
                                      int nSeeds,
                                      const CaloTopology* topology,
                                      const CaloSubdetectorGeometry* ebGeom,
@@ -135,9 +134,9 @@ std::array<double, 3> EcalClustersGraph::dynamicWindow(double seedEta) const {
 
 void EcalClustersGraph::initWindows() {
   for (uint is = 0; is < nSeeds_; is++) {
-    const auto& seedLocal = clusterPosition((*clusters_[is]).ptr().get());
-    double seed_eta = clusters_[is]->eta();
-    double seed_phi = clusters_[is]->phi();
+    const auto& seedLocal = clusterPosition((clusters_[is]).ptr().get());
+    double seed_eta = clusters_[is].eta();
+    double seed_phi = clusters_[is].phi();
     const auto& width = dynamicWindow(seed_eta);
     // Add a self loop on the seed node
     graphMap_.addEdge(is, is);
@@ -147,9 +146,9 @@ void EcalClustersGraph::initWindows() {
     for (uint icl = is + 1; icl < nCls_; icl++) {
       if (is == icl)
         continue;
-      const auto& clusterLocal = clusterPosition((*clusters_[icl]).ptr().get());
-      double cl_eta = clusters_[icl]->eta();
-      double cl_phi = clusters_[icl]->phi();
+      const auto& clusterLocal = clusterPosition((clusters_[icl]).ptr().get());
+      double cl_eta = clusters_[icl].eta();
+      double cl_phi = clusters_[icl].phi();
       double dphi = deltaPhi(seed_phi, cl_phi);
       double deta = deltaEta(seed_eta, cl_eta);
 
@@ -388,7 +387,7 @@ void EcalClustersGraph::fillVariables() {
     // Loop on all the clusters
     for (const auto ic : outEdges) {
       LogTrace("EcalClustersGraph") << "seed: " << is << ", out edge --> " << ic;
-      const auto clPointer = (*clusters_[ic]).ptr().get();
+      const auto clPointer = (clusters_[ic]).ptr().get();
       const auto& clusterFeatures = computeVariables(seedPointer, clPointer);
       unscaledClusterFeatures.push_back(clusterFeatures);
       // Select and scale only the requested variables for the tensorflow model input
