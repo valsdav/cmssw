@@ -5,9 +5,8 @@ using namespace std;
 using namespace reco;
 using namespace reco::DeepSCInputs;
 
-typedef std::vector<CalibratedPFCluster> CalibratedPFClusterVector;
 
-EcalClustersGraph::EcalClustersGraph(CalibratedPFClusterVector clusters,
+EcalClustersGraph::EcalClustersGraph(ClusterPtrVector clusters,
                                      int nSeeds,
                                      const CaloTopology* topology,
                                      const CaloSubdetectorGeometry* ebGeom,
@@ -134,9 +133,9 @@ std::array<double, 3> EcalClustersGraph::dynamicWindow(double seedEta) const {
 
 void EcalClustersGraph::initWindows() {
   for (uint is = 0; is < nSeeds_; is++) {
-    const auto& seedLocal = clusterPosition((clusters_[is]).ptr().get());
-    double seed_eta = clusters_[is].eta();
-    double seed_phi = clusters_[is].phi();
+    const auto& seedLocal = clusterPosition((clusters_[is]).get());
+    double seed_eta = clusters_[is]->positionREP().eta();
+    double seed_phi = clusters_[is]->positionREP().phi();
     const auto& width = dynamicWindow(seed_eta);
     // Add a self loop on the seed node
     graphMap_.addEdge(is, is);
@@ -150,9 +149,9 @@ void EcalClustersGraph::initWindows() {
     for (uint icl = is + 1; icl < nCls_; icl++) {
       if (is == icl)
         continue;
-      const auto& clusterLocal = clusterPosition((clusters_[icl]).ptr().get());
-      double cl_eta = clusters_[icl].eta();
-      double cl_phi = clusters_[icl].phi();
+      const auto& clusterLocal = clusterPosition((clusters_[icl]).get());
+      double cl_eta = clusters_[icl]->positionREP().eta();
+      double cl_phi = clusters_[icl]->positionREP().phi();
       double dphi = deltaPhi(seed_phi, cl_phi);
       double deta = deltaEta(seed_eta, cl_eta);
 
@@ -205,13 +204,14 @@ DeepSCInputs::FeaturesMap EcalClustersGraph::computeVariables(const CaloCluster*
                                                               const CaloCluster* cluster) const {
   DeepSCInputs::FeaturesMap clFeatures;
   const auto& clusterLocal = clusterPosition(cluster);
-  double cl_energy = cluster->energy();
-  double cl_eta = cluster->eta();
-  double cl_phi = cluster->phi();
-  double seed_energy = seed->energy();
-  double seed_eta = seed->eta();
-  double seed_phi = seed->phi();
-  clFeatures["cl_energy"] = cl_energy;                                                                //cl_energy
+  double cl_energy = cluster->correctedEnergy();
+  double cl_eta = cluster->position().eta();
+  double cl_phi = cluster->position().phi();
+  double seed_energy = seed->correctedEnergy();
+  double seed_eta = seed->position().eta();
+  double seed_phi = seed->position().phi();
+  clFeatures["cl_energy"] = cl_energy;                                                                //cl_energy calibrated
+  clFeatures["cl_energy_raw"] = cluster->energy();                                                    //cl_energy raw 
   clFeatures["cl_et"] = cl_energy / std::cosh(cl_eta);                                                //cl_et
   clFeatures["cl_eta"] = cl_eta;                                                                      //cl_eta
   clFeatures["cl_phi"] = cl_phi;                                                                      //cl_phi
@@ -253,7 +253,7 @@ DeepSCInputs::FeaturesMap EcalClustersGraph::computeWindowVariables(
 std::pair<double, double> EcalClustersGraph::computeCovariances(const CaloCluster* cluster) {
   double numeratorEtaWidth = 0;
   double numeratorPhiWidth = 0;
-  double denominator = cluster->energy();
+  double denominator = cluster->energy();  // raw energy
   double clEta = cluster->position().eta();
   double clPhi = cluster->position().phi();
   std::shared_ptr<const CaloCellGeometry> this_cell;
@@ -364,7 +364,7 @@ void EcalClustersGraph::fillVariables() {
 
   // Looping on all the seeds (window)
   for (uint is = 0; is < nSeeds_; is++) {
-    const auto seedPointer = (clusters_[is]).ptr().get();
+    const auto seedPointer = (clusters_[is]).get();
     std::vector<DeepSCInputs::FeaturesMap> unscaledClusterFeatures;
     const auto& outEdges = graphMap_.getOutEdges(is);
     size_t ncls = outEdges.size();
@@ -376,7 +376,7 @@ void EcalClustersGraph::fillVariables() {
     // Loop on all the clusters
     for (const auto ic : outEdges) {
       LogTrace("EcalClustersGraph") << "seed: " << is << ", out edge --> " << ic;
-      const auto clPointer = (clusters_[ic]).ptr().get();
+      const auto clPointer = (clusters_[ic]).get();
       const auto& clusterFeatures = computeVariables(seedPointer, clPointer);
       for (const auto& [key, val] : clusterFeatures) {
         LogTrace("EcalCluster") << key << "=" << val;
@@ -426,8 +426,8 @@ EcalClustersGraph::EcalGraphOutput EcalClustersGraph::getGraphOutput() {
   EcalClustersGraph::EcalGraphOutput finalWindows_;
   const auto& finalSuperClusters_ = graphMap_.getGraphOutput();
   for (const auto& [is, cls] : finalSuperClusters_) {
-    CalibratedPFCluster seed = clusters_[is];
-    CalibratedPFClusterVector clusters_inWindow;
+    ClusterPtr seed = clusters_[is];
+    ClusterPtrVector clusters_inWindow;
     for (const auto& ic : cls) {
       clusters_inWindow.push_back(clusters_[ic]);
     }

@@ -35,7 +35,6 @@
 #include "Geometry/EcalAlgo/interface/EcalBarrelGeometry.h"
 #include "Geometry/EcalAlgo/interface/EcalEndcapGeometry.h"
 
-#include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
 #include "RecoEcal/EgammaCoreTools/interface/GraphMap.h"
 #include "RecoEcal/EgammaCoreTools/interface/SCProducerCache.h"
 
@@ -48,14 +47,17 @@
  * The DeepSC algorithm is applied on sub-graphs of clusters to form SuperCluster.
  */
 
+
+typedef edm::Ptr<reco::PFCluster> ClusterPtr;
+typedef edm::PtrVector<reco::PFCluster> ClusterPtrVector;
+
 namespace reco {
 
   class EcalClustersGraph {
   public:
-    typedef std::vector<CalibratedPFCluster> CalibratedPFClusterVector;
-    typedef std::vector<std::pair<CalibratedPFCluster, CalibratedPFClusterVector>> EcalGraphOutput;
+    typedef std::vector<std::pair<ClusterPtr, ClusterPtrVector>> EcalGraphOutput;
 
-    EcalClustersGraph(CalibratedPFClusterVector clusters,
+    EcalClustersGraph(ClusterPtrVector clusters,
                       int nSeeds,
                       const CaloTopology* topology,
                       const CaloSubdetectorGeometry* ebGeom,
@@ -94,7 +96,7 @@ namespace reco {
     std::pair<double, double> computeCovariances(const CaloCluster* cluster);
     std::vector<double> computeShowerShapes(const CaloCluster* cluster, bool full5x5);
 
-    CalibratedPFClusterVector clusters_;
+    ClusterPtrVector clusters_;
     uint nSeeds_;
     uint nCls_;
 

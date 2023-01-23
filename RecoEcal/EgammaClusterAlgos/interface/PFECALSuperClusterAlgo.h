@@ -28,7 +28,6 @@
 
 #include "RecoEcal/EgammaClusterAlgos/interface/SCEnergyCorrectorSemiParm.h"
 #include "RecoEcal/EgammaCoreTools/interface/EcalClustersGraph.h"
-#include "RecoEcal/EgammaCoreTools/interface/CalibratedPFCluster.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -61,7 +60,9 @@
   \date July 2012
 */
 
-typedef std::vector<CalibratedPFCluster> CalibratedPFClusterVector;
+typedef edm::Ptr<reco::PFCluster> ClusterPtr;
+typedef edm::PtrVector<reco::PFCluster> ClusterPtrVector;
+
 
 class PFECALSuperClusterAlgo {
 public:
@@ -141,19 +142,19 @@ private:
   const EcalMustacheSCParameters* mustacheSCParams_;
   const EcalSCDynamicDPhiParameters* scDynamicDPhiParams_;
 
-  CalibratedPFClusterVector _clustersEB;
-  CalibratedPFClusterVector _clustersEE;
+  ClusterPtrVector _clustersEB;
+  ClusterPtrVector _clustersEE;
   std::unique_ptr<reco::SuperClusterCollection> superClustersEB_;
   std::unique_ptr<reco::SuperClusterCollection> superClustersEE_;
   const reco::PFCluster::EEtoPSAssociation* EEtoPS_;
   std::shared_ptr<PFEnergyCalibration> _pfEnergyCalibration;
   clustering_type _clustype;
   energy_weight _eweight;
-  void buildAllSuperClusters(CalibratedPFClusterVector&, double seedthresh);
-  void buildAllSuperClustersMustacheOrBox(CalibratedPFClusterVector&, double seedthresh);
-  void buildAllSuperClustersDeepSC(CalibratedPFClusterVector&, double seedthresh);
-  void buildSuperClusterMustacheOrBox(CalibratedPFCluster&, CalibratedPFClusterVector&);
-  void finalizeSuperCluster(CalibratedPFCluster& seed, CalibratedPFClusterVector& clustered, bool isEE);
+  void buildAllSuperClusters(ClusterPtrVector&, double seedthresh);
+  void buildAllSuperClustersMustacheOrBox(ClusterPtrVector&, double seedthresh);
+  void buildAllSuperClustersDeepSC(ClusterPtrVector&, double seedthresh);
+  void buildSuperClusterMustacheOrBox(ClusterPtr&, ClusterPtrVector&);
+  void finalizeSuperCluster(ClusterPtr& seed, ClusterPtrVector& clustered, bool isEE);
 
   bool verbose_;
 
