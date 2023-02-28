@@ -215,10 +215,9 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
   // Preparing the two sets of inputs for the small and large model
   std::map<uint, std::vector<size_t>> windowModelMapping = {{0, {}}, {1, {}}};  // Map between window -> Model
   // Quickly checking the dimension of each window to assig it to the correct model
-  LogDebug("DeepSCGraphEvaluation") << "Assigning windows to models. Max Ncls " << cfg_.maxNClusters[0]
-                                    << " max Nrechit:" << cfg_.maxNRechits[0];
+  LogDebug("DeepSCGraphEvaluation") << "Assigning windows to models. Max Ncls " << cfg_.maxNClusters[0];
   for (size_t i = 0; i < nInputs; i++) {
-    if ((inputs.clustersX[i].size() > cfg_.maxNClusters[0]) || (inputs.maxNRechits[i] > cfg_.maxNRechits[0])) {
+    if (inputs.clustersX[i].size() > cfg_.maxNClusters[0]) {
       LogDebug("DeepSCGraphEvaluation") << "wind: " << i << " to model: 1. Nrechits:  " << inputs.maxNRechits[i]
                                         << " nclusters: " << inputs.clustersX[i].size();
       windowModelMapping[1].push_back(i);
@@ -234,20 +233,16 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
       {0,
        {{"clsX", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0], cfg_.nClusterFeatures}}},
         {"windX", {tensorflow::DT_FLOAT, {nsamples0, cfg_.nWindowFeatures}}},
-        {"hitsX", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0], cfg_.maxNRechits[0], cfg_.nHitsFeatures}}},
         {"isSeedX", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0]}}},
-        {"maskCls", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0]}}},
-        {"maskRechits", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0], cfg_.maxNRechits[0]}}}}}};
+        {"maskCls", {tensorflow::DT_FLOAT, {nsamples0, cfg_.maxNClusters[0]}}}}}};
 
   auto nsamples1 = static_cast<long int>(windowModelMapping[1].size());
   if (nsamples1 > 0) {
     tfInputs[1] = {
         {"clsX", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1], cfg_.nClusterFeatures}}},
         {"windX", {tensorflow::DT_FLOAT, {nsamples1, cfg_.nWindowFeatures}}},
-        {"hitsX", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1], cfg_.maxNRechits[1], cfg_.nHitsFeatures}}},
         {"isSeedX", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1]}}},
-        {"maskCls", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1]}}},
-        {"maskRechits", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1], cfg_.maxNRechits[1]}}}};
+        {"maskCls", {tensorflow::DT_FLOAT, {nsamples1, cfg_.maxNClusters[1]}}}};
   }
   // The input tensors are now ready to be filled
   // Now we can loop on all the elements and fill the correct tensor
@@ -283,39 +278,6 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
         tf_windX.matrix<float>()(b, k) = float(wind_features[k]);
       }
 
-      auto tf_hitsX = tf["hitsX"];
-      auto tf_maskRechits = tf["maskRechits"];
-      const auto& hits_data = inputs.hitsX[iwindow];
-      size_t ncls_in_window = hits_data.size();
-      // Loop on clusters
-      for (size_t k = 0; k < cfg_.maxNClusters[modelIdx]; k++) {
-        // Check padding
-        size_t nhits_in_cluster;
-        if (k < ncls_in_window)
-          nhits_in_cluster = hits_data[k].size();
-        else
-          nhits_in_cluster = 0;
-        // Loop on hits
-        for (size_t j = 0; j < cfg_.maxNRechits[modelIdx]; j++) {
-          // Check the number of clusters and hits for padding
-          bool ok = j < nhits_in_cluster;
-          // Rechits masc
-          if (ok) {
-            tf_maskRechits.tensor<float, 3>()(b, k, j) = 1.;
-          } else {
-            tf_maskRechits.tensor<float, 3>()(b, k, j) = 0.;
-          }
-          // Loop on rechits features
-          for (size_t z = 0; z < cfg_.nHitsFeatures; z++) {
-            if (ok) {
-              tf_hitsX.tensor<float, 4>()(b, k, j, z) = float(hits_data[k][j][z]);
-            } else {
-              tf_hitsX.tensor<float, 4>()(b, k, j, z) = 0.;
-            }
-          }
-        }
-      }
-
       auto tf_isSeedX = tf["isSeedX"];
       const auto& isSeed_data = inputs.isSeed[iwindow];
       // Loop on clusters
@@ -339,10 +301,8 @@ std::vector<std::vector<float>> DeepSCGraphEvaluation::evaluate(const DeepSCInpu
 
     std::vector<std::pair<std::string, tensorflow::Tensor>> feed_dict = {{"input_1", tfInputs["clsX"]},
                                                                          {"input_2", tfInputs["windX"]},
-                                                                         {"input_3", tfInputs["hitsX"]},
-                                                                         {"input_4", tfInputs["isSeedX"]},
-                                                                         {"input_5", tfInputs["maskCls"]},
-                                                                         {"input_6", tfInputs["maskRechits"]}};
+                                                                         {"input_3", tfInputs["isSeedX"]},
+                                                                         {"input_4", tfInputs["maskCls"]}};
 
     // Define the output and run
     std::vector<tensorflow::Tensor> outputs_tf;
