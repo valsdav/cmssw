@@ -421,9 +421,12 @@ void EcalClustersGraph::evaluateScores() {
       // seeds windows.
       // Put the seed self-link score to 1 to make sure that the window is always including the seed
       // itself.
-      if (i == k) graphMap_.setAdjMatrix(i,j, 1.);
-      graphMap_.setAdjMatrix(i, j, scores[i][k]);
-      LogTrace("EcalClustersGraph") << "\t" << i << "-->" << j << ": " << scores[i][k];
+      if (j == i)
+        graphMap_.setAdjMatrix(i, j, 1.);
+      else
+        graphMap_.setAdjMatrix(i, j, scores[i][k]);
+      LogTrace("EcalClustersGraph") << "\t" << i << "-->" << j << ": "
+                                    << " score: " << scores[i][k] << " adjmatrix:" << graphMap_.getAdjMatrix(i, j);
       k++;
     }
   }
@@ -443,10 +446,13 @@ void EcalClustersGraph::selectClusters() {
 EcalClustersGraph::EcalGraphOutput EcalClustersGraph::getGraphOutput() {
   EcalClustersGraph::EcalGraphOutput finalWindows_;
   const auto& finalSuperClusters_ = graphMap_.getGraphOutput();
+  LogTrace("EcalClustersGraph") << "Final SuperClusters";
   for (const auto& [is, cls] : finalSuperClusters_) {
-    CalibratedClusterPtr seed = clusters_[is];
-    CalibratedClusterPtrVector clusters_inWindow;
+    LogTrace("EcalClustersGraph") << "seed: " << is << ": ";
+    CalibratedPFCluster seed = clusters_[is];
+    CalibratedPFClusterVector clusters_inWindow;
     for (const auto& ic : cls) {
+      LogTrace("EcalClustersGraph") << "\t\tcl: " << ic;
       clusters_inWindow.push_back(clusters_[ic]);
     }
     finalWindows_.push_back({seed, clusters_inWindow});
