@@ -27,6 +27,7 @@ namespace reco {
     std::vector<uint> maxNClusters;
     std::vector<uint> maxNRechits;
     std::string collectionStrategy;
+    tensorflow::Backend tf_backend;
   };
 
   /*

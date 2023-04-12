@@ -25,6 +25,16 @@ namespace reco {
         config.maxNClusters = pset_dnn.getParameter<std::vector<uint>>("maxNClusters");
         config.maxNRechits = pset_dnn.getParameter<std::vector<uint>>("maxNRechits");
         config.collectionStrategy = pset_dnn.getParameter<std::string>("collectionStrategy");
+
+        auto tf_backend = pset_dnn.getParameter<std::string>("tf_backend");
+        if (tf_backend == "cpu")
+          config.tf_backend = tensorflow::Backend::cpu;
+        else if (tf_backend == "cuda")
+          config.tf_backend = tensorflow::Backend::cuda;
+        else
+          throw cms::Exception("WrongConfiguration")
+              << "TF backend option for DeepSC algo not supported: " << tf_backend;
+
         deepSCEvaluator = std::make_unique<DeepSCGraphEvaluation>(config);
       }
     };

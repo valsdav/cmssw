@@ -397,6 +397,7 @@ void PFECALSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions
   deepSCParams.add<std::vector<uint>>("maxNClusters", {15, 30});
   deepSCParams.add<std::vector<uint>>("maxNRechits", {20, 60});
   deepSCParams.add<std::string>("collectionStrategy", "Cascade");
+  deepSCParams.add<std::string>("tf_backend", "cpu");
 
   EmptyGroupDescription emptyGroup;
 

@@ -145,7 +145,9 @@ void DeepSCGraphEvaluation::initTensorFlowGraphAndSession() {
   uint imodel = 0;
   for (const auto& modelFile : cfg_.modelFiles) {
     LogDebug("DeepSCGraphEvaluation") << "Loading graph: " << modelFile << " and starting the TF session";
-    sessions_[imodel] = tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath(modelFile).fullPath()));
+    tensorflow::Options options{cfg_.tf_backend};
+    sessions_[imodel] =
+        tensorflow::createSession(tensorflow::loadGraphDef(edm::FileInPath(modelFile).fullPath()), options);
     imodel++;
   }
   LogDebug("DeepSCGraphEvaluation") << "TF ready";
