@@ -51,6 +51,7 @@
 
 #include "SimCalorimetry/HGCalAssociatorProducers/interface/AssociatorTools.h"
 #include "SimDataFormats/Associations/interface/TracksterToSimTracksterHitLCAssociator.h"
+#include "SimDataFormats/Associations/interface/LayerClusterToCaloParticleAssociatorBaseImpl.h"
 #include "RecoHGCal/TICL/interface/commons.h"
 
 // TFileService
@@ -67,7 +68,7 @@ public:
 
 private:
   void beginJob() override;
-  void beginRun(const edm::Run&, const edm::EventSetup&) override;
+  void beginRun(const edm::Run&, const edm::EventSetup&) override {};
 
   //void initialize();
   //void buildLayers();
@@ -77,7 +78,7 @@ private:
   void endJob() override;
 
   //LCs
-  const edm::EDGetTokenT<std::vector<reco::CaloCluster>> layer_clusters_token;
+  const edm::EDGetTokenT<std::vector<reco::CaloCluster>> layer_clusters_token_;
   //CPs
   const edm::EDGetTokenT<std::vector<CaloParticle>> caloparticles_token_;
   //SCs
@@ -86,8 +87,8 @@ private:
   const edm::EDGetTokenT<hgcal::SimToRecoCollection> simtoreco_token_;
   const edm::EDGetTokenT<hgcal::RecoToSimCollection> recotosim_token_;
 
-  const edm::EDGetTokenT<std::vector<reco::CaloCluster>> layer_clusters_CP_token;
-  const edm::EDGetTokenT<std::vector<CaloParticle>> caloparticle_LC_token;
+  const edm::EDGetTokenT<std::vector<reco::CaloCluster>> layer_clusters_CP_token_;
+  const edm::EDGetTokenT<std::vector<CaloParticle>> caloparticle_LC_token_;
   //Geometry
   //const edm::ESGetTken<CaloGeometry, CaloGeometryRecord> geometry_token_;
   
@@ -110,12 +111,12 @@ private:
   std::vector<std::vector<float>> lc2cp_score;
 
   TTree* layercluster_tree_;
-  TTree* caloparticles_tree_;
+  TTree* caloparticle_tree_;
   TTree* association_tree_;
 
 };
 
-void LayerClusterDumper::clearVariable() {
+void LayerClusterDumper::clearVariables() {
   layercluster_energy.clear();
   layercluster_eta.clear();
   layercluster_phi.clear();
@@ -134,8 +135,8 @@ LayerClusterDumper::LayerClusterDumper(const edm::ParameterSet& ps)
 
 LayerClusterDumper::~LayerClusterDumper() { clearVariables(); };
 
-void LayerCluster::beginJob() {
-  edm::Service<TFileService> fs;
+void LayerClusterDumper::beginJob() {
+2  edm::Service<TFileService> fs;
   layercluster_tree_ = fs->make<TTree>("layerclusters", "Layer Clusters");
   association_tree_ = fs->make<TTree>("associartions", "Associations");
   caloparticle_tree_ = fs->make<TTree>("caloparticles", "CaloParticles");
@@ -154,7 +155,7 @@ void LayerCluster::beginJob() {
   event_index = 0;
 }
 
-void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventSetup& setup) {
+void LayerClusterDumper::analyze(const edm::Event& event, const edm::EventSetup& setup) {
   event_index++;
   clearVariables();
 
@@ -162,7 +163,7 @@ void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventS
   event.getByToken(layer_clusters_token_, layer_clusters_h);
   const auto& layer_clusters = *layer_clusters_h;
 
-  edm::Handle<std:vector<CaloParticle>> caloparticle_h;
+  edm::Handle<std::vector<CaloParticle>> caloparticle_h;
   event.getByToken(caloparticles_token_, caloparticle_h);
   const auto& caloparticles = *caloparticle_h;
 
@@ -181,8 +182,8 @@ void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventS
   edm::Handle<std::vector<CaloParticle>> caloparticle_LC_h;
   event.getByToken(caloparticle_LC_token_, caloparticle_LC_h);
   
-  ev_event = event_index;
-  nclusters_ = layer_cluster.size();
+  ev_event_ = event_index;
+  nclusters_ = layer_clusters.size();
   
 
   for (auto lc_iterator = layer_clusters.begin(); lc_iterator != layer_clusters.end(); ++lc_iterator) {
@@ -197,9 +198,9 @@ void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventS
     caloparticle_phi.push_back(cp_iterator->phi());
   }
 
-  lc2cp_score.resize(layer_cluster.size());
-  for (unsigned int lcId = 0; lcId < layer_cluster.size(); ++lcId) {
-    const edm::Ref<std::vector<reco::CaloCluster>> lcRef(layer_cluster_h, lcId);
+  lc2cp_score.resize(layer_clusters.size());
+  for (unsigned int lcId = 0; lcId < layer_clusters.size(); ++lcId) {
+    const edm::Ref<std::vector<reco::CaloCluster>> lcRef(layer_clusters_h, lcId);
     const auto& cpsIt = recoToSim.find(lcRef);
     if (cpsIt == recoToSim.end())
       continue;
@@ -215,9 +216,9 @@ void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventS
     const auto& lcsIt = simToReco.find(cpRef);
     if (lcsIt == simToReco.end())
       continue;
-    const auto& cls = lcsIt-.val;
-    for (const auto& lcPair : lcs) {
-      cp2lc_score[cpId].push_back(lcPair.second);
+    const auto& cls = lcsIt->val;
+    for (const auto& lcPair : cls) {
+      cp2lc_score[cpId].push_back(lcPair.second.second);
     }
   }
 
@@ -225,6 +226,8 @@ void LayerClusterDumper::analyze(const edm::EventSetup& event, const edm::EventS
   caloparticle_tree_->Fill();
   association_tree_->Fill();
 }
+
+
 
 void LayerClusterDumper::endJob() {}
 
@@ -235,7 +238,7 @@ void LayerClusterDumper::fillDescriptions(edm::ConfigurationDescriptions& descri
   desc.add<edm::InputTag>("simToRecoCollection", edm::InputTag("layerClusterCaloParticleAssociationProducer"));
   desc.add<edm::InputTag>("recoToSimCollection", edm::InputTag("layerClusterCaloParticleAssociationProducer"));
 
-  descriptions.add("layerCustersDumper", desc);
+  descriptions.add("layerClustersDumper", desc);
 }
 
 DEFINE_FWK_MODULE(LayerClusterDumper);
