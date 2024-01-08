@@ -19,3 +19,36 @@
 #include "SimDataFormats/Associations/interface/MtdSimLayerClusterToRecoClusterAssociationMap.h"
 #include "SimDataFormats/Associations/interface/MtdRecoClusterToSimLayerClusterAssociator.h"
 #include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociator.h"
+
+namespace SimDataFormats_Associations {
+  struct SimDataFormats_Associations {
+    // add 'dummy' Wrapper variable for each class type you put into the Event
+    edm::Wrapper<reco::TrackToTrackingParticleAssociator> dummy1;
+    edm::Wrapper<reco::TrackToGenParticleAssociator> dummy2;
+    edm::Wrapper<reco::MuonToTrackingParticleAssociator> dummy3;
+
+    edm::Wrapper<reco::VertexToTrackingVertexAssociator> dummy4;
+
+    edm::Wrapper<ticl::LayerClusterToCaloParticleAssociator> dummy5;
+
+    edm::Wrapper<ticl::LayerClusterToSimClusterAssociator> dummy6;
+
+    edm::Wrapper<ticl::TracksterToSimClusterAssociator> dummy7;
+
+    edm::Wrapper<hgcal::MultiClusterToCaloParticleAssociator> dummy8;
+
+    edm::Wrapper<ticl::TracksterToSimTracksterAssociator> dummy9;
+
+    edm::Wrapper<ticl::TracksterToSimTracksterHitLCAssociator> dummy10;
+
+    edm::Wrapper<ticl::LayerClusterToSimTracksterAssociator> dummy11;
+
+    reco::VertexSimToRecoCollection vstrc;
+    reco::VertexSimToRecoCollection::const_iterator vstrci;
+    edm::Wrapper<reco::VertexSimToRecoCollection> wvstrc;
+
+    reco::VertexRecoToSimCollection vrtsc;
+    reco::VertexRecoToSimCollection::const_iterator vrtsci;
+    edm::Wrapper<reco::VertexRecoToSimCollection> wvrtsci;
+  };
+}  // namespace SimDataFormats_Associations
