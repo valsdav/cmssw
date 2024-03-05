@@ -25,7 +25,7 @@ namespace edm {
 
   protected:
     // data members
-    bool fControlledByEta;
+    bool fControlledByEta, fFixedR;
     double fVarMin, fVarMax, fEtaMin, fEtaMax, fRMin, fRMax, fZMin, fZMax, fDelta, fPhiMin, fPhiMax, fTMin, fTMax,
         fOffsetFirst;
     int fNParticles;
