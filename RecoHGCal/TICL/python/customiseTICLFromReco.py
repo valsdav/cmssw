@@ -6,9 +6,7 @@ from RecoHGCal.TICL.ticlDumper_cfi import ticlDumper
 from RecoHGCal.TICL.layerClusterDumper_cfi import layerClusterDumper
 # Validation
 from Validation.HGCalValidation.HGCalValidator_cfi import *
-#from Validation.HGCalValidation.BarrelValidator_cfi import *
-#from Validation.HGCalValidation.SimBarrelValidator_cfi import *
-#from Validation.HGCalValidation.BarrelValidatorPFCluster_cfi import *
+from RecoLocalCalo.HGCalRecProducers.recHitMapProducer_cfi import recHitMapProducer
 
 #from RecoLocalCalo.HGCalRecProducers.hgcalRecHitMapProducer_cfi import hgcalRecHitMapProducer
 from RecoLocalCalo.HGCalRecProducers.recHitMapProducer_cfi import recHitMapProducer
@@ -59,7 +57,7 @@ def customiseTICLFromReco(process):
                             process.ticlIterationsTask,
                             process.ticlTracksterMergeTask)
     # Validation
-    process.TICL_ValidationProducers = cms.Task(process.hgcalRecHitMapProducer,
+    process.TICL_ValidationProducers = cms.Task(process.recHitMapProducer,
                                                 process.lcAssocByEnergyScoreProducer,
                                                 process.layerClusterCaloParticleAssociationProducer,
                                                 process.scAssocByEnergyScoreProducer,

@@ -11,6 +11,8 @@
 
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
+#include "DataFormats/HcalDetId/interface/HcalSubdetector.h"
+
 //
 // Forward declarations
 //
@@ -212,8 +214,11 @@ public:
   /** @brief Returns list of rechit IDs and fractions in the barrel for this SimCluster */
   std::vector<std::pair<uint32_t, float>> barrel_hits_and_fractions() const {
     std::vector<std::pair<uint32_t, float>> result;
-    for (size_t i = 0; i < barrel_hits_.size(); ++i) {
-      result.emplace_back(barrel_hits_[i], barrel_fractions_[i]);
+    for (size_t i = 0; i < hits_.size(); ++i) {
+      DetId detid(hits_[i]);
+      if (detid.subdetId() != EcalBarrel && detid.subdetId() != HcalBarrel && detid.subdetId() != HcalOuter)
+        continue;
+      result.emplace_back(hits_[i], fractions_[i]);
     }
     return result;
   }
@@ -221,8 +226,11 @@ public:
   /** @brief Returns list of rechit IDs and fractions in the endcap for this SimCluster */
   std::vector<std::pair<uint32_t, float>> endcap_hits_and_fractions() const {
     std::vector<std::pair<uint32_t, float>> result;
-    for (size_t i = 0; i < endcap_hits_.size(); ++i) {
-      result.emplace_back(endcap_hits_[i], endcap_fractions_[i]);
+    for (size_t i = 0; i < hits_.size(); ++i) {
+      DetId detid(hits_[i]);
+      if (detid.subdetId() == EcalBarrel || detid.subdetId() == HcalBarrel || detid.subdetId() == HcalOuter)
+        continue;
+      result.emplace_back(hits_[i], fractions_[i]);
     }
     return result;
   }
