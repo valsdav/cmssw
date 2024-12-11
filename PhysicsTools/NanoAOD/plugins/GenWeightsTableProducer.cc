@@ -473,11 +473,11 @@ public:
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     std::string EFTcoefDoc = "EFT fit coefficients";
     outEFT.reset(new nanoaod::FlatTable(nCoef, "EFTfitCoefficients", false));
-    outEFT->addColumn<float>("", coefs, EFTcoefDoc, nanoaod::FlatTable::FloatColumn, lheWeightPrecision_);
+    outEFT->addColumn<float>("", coefs, EFTcoefDoc, lheWeightPrecision_);
 
     std::string WCnamDoc = "EFT WC names";
     outWCnam.reset(new nanoaod::FlatTable(nWC, "WCnames", false));
-    outWCnam->addColumn<int>("", wcnames, WCnamDoc, nanoaod::FlatTable::IntColumn, lheWeightPrecision_);
+    outWCnam->addColumn<int>("", wcnames, WCnamDoc, lheWeightPrecision_);
 
     outNamed = std::make_unique<nanoaod::FlatTable>(1, "LHEWeight", true);
     outNamed->addColumnValue<float>("originalXWGTUP",
