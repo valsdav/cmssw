@@ -25,6 +25,9 @@
 </iftool>
 
 <bin name="testDRNModelLoading" file="testRunner.cc,testDRNModelLoading.cc">
+  <use name="pytorch-scatter"/>
+  <use name="pytorch-cluster"/>
+  <use name="pytorch-sparse"/>
   <use name="pytorch"/>
   <use name="boost_filesystem"/>
   <use name="cppunit"/>
