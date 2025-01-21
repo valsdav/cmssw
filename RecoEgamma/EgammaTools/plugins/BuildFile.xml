@@ -9,4 +9,9 @@
   <use name="DataFormats/EgammaCandidates"/>
   <use name="RecoEgamma/EgammaTools"/>
   <use name="HeterogeneousCore/SonicTriton"/>
+  <use name="pytorch"/>
+  <use name="pytorch-scatter"/>
+  <use name="pytorch-cluster"/>
+  <use name="pytorch-sparse"/>
 </library>
+
