@@ -24,15 +24,15 @@
   </bin>
 </iftool>
 
-<bin name="testDRNModelLoading" file="testDRNModelLoading.cc">
+<bin name="testDRNModelLoading" file="testRunner.cc,testDRNModelLoading.cc">
   <use name="pytorch"/>
+  <use name="boost_filesystem"/>
+  <use name="cppunit"/>
 </bin>
 
 
 <bin name="testTorch" file="testTorch.cc">
   <use name="pytorch"/>
-  <use name="boost_filesystem"/>
-  <use name="cppunit"/>
 </bin>
 
 <bin name="testTorchTimeSeries" file="time_serie_prediction.cpp">
