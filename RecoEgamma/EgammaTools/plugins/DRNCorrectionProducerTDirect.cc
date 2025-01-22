@@ -1,3 +1,5 @@
+#include <torch/script.h>
+
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -37,7 +39,6 @@
 
 #include "RecoEcal/EgammaCoreTools/interface/PositionCalc.h"
 
-#include <torch/script.h>
 
 #include <cmath>
 
@@ -90,7 +91,7 @@ namespace {
   const float ES_RANGE = 0.1f;
 
 }  // namespace
-
+namespace drn {
 template <typename T>
 class DRNCorrectionProducerTDirect : public edm::stream::EDProducer<> {
 public:
@@ -116,6 +117,8 @@ private:
   bool isEB(const T& part);
   bool isEE(const T& part);
   bool skip(const T& part);
+
+  torch::jit::script::Module model_;
 };
 
 template <typename T>
@@ -131,10 +134,16 @@ DRNCorrectionProducerTDirect<T>::DRNCorrectionProducerTDirect(const edm::Paramet
 {
   produces<edm::ValueMap<std::pair<float, float>>>();
 
-  // Load Torch model
-    
-  
-  
+  // Load Torch model    
+     torch::Device device(torch::kCPU);
+     try {
+       // This failes if torch/script.h is not included as the first one of the file
+       // torch::jit::ClassDef type gets defined from some root/RType.h and the compilation fails
+       model_ = torch::jit::load(modelPath_);
+       model_.to(device);
+     } catch (const c10::Error& e) {
+       std::cerr << "error loading the model\n" << e.what() << std::endl;
+     }
 }
 
 template <typename T>
@@ -163,15 +172,8 @@ void DRNCorrectionProducerTDirect<T>::produce(edm::Event& iEvent, const edm::Eve
   /*
    * Get products from event and event setup
    */
-    torch::jit::script::Module model_;
-torch::Device device(torch::kCPU);
-  try {
-    model_ = torch::jit::load(modelPath_);
-    model_.to(device);
-  } catch (const c10::Error& e) {
-    std::cerr << "error loading the model\n" << e.what() << std::endl;
-  }
 
+ 
   
   const auto& particles_ = iEvent.getHandle(particleToken_);
   float rho = iEvent.get(rhoToken_);
@@ -409,6 +411,7 @@ void DRNCorrectionProducerTDirect<T>::fillDescriptions(edm::ConfigurationDescrip
   descriptions.addWithDefaultLabel(desc);
 }
 
+}	// namespace drn
 //reco:: template instances are supported
 //uncomment the lines below to enable them
 
@@ -417,8 +420,8 @@ void DRNCorrectionProducerTDirect<T>::fillDescriptions(edm::ConfigurationDescrip
 //DEFINE_FWK_MODULE(GedPhotonDRNCorrectionProducer);
 //DEFINE_FWK_MODULE(GsfElectronDRNCorrectionProducer);
 
-using PatElectronDRNCorrectionDirectProducer = DRNCorrectionProducerTDirect<pat::Electron>;
-using PatPhotonDRNCorrectionDirectProducer = DRNCorrectionProducerTDirect<pat::Photon>;
+using PatElectronDRNCorrectionDirectProducer = drn::DRNCorrectionProducerTDirect<pat::Electron>;
+using PatPhotonDRNCorrectionDirectProducer = drn::DRNCorrectionProducerTDirect<pat::Photon>;
 
 DEFINE_FWK_MODULE(PatPhotonDRNCorrectionDirectProducer);
 DEFINE_FWK_MODULE(PatElectronDRNCorrectionDirectProducer);
