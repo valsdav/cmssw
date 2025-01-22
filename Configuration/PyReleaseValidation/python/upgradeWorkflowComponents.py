@@ -999,6 +999,30 @@ upgradeWFs['photonDRN'].step3 = {
     '--procModifiers': 'enableSonicTriton,photonDRN'
 }
 
+# photonDRNDirect workflows
+class UpgradeWorkflow_photonDRNDirect(UpgradeWorkflow):
+    def setup_(self, step, stepName, stepDict, k, properties):
+        if 'Reco' in step:
+            stepDict[stepName][k] = merge([self.step3, stepDict[step][k]])
+    def condition(self, fragment, stepList, key, hasHarvest):
+        return '2018' in key and "SingleGamma" in fragment
+
+upgradeWFs['photonDRNDirect'] = UpgradeWorkflow_photonDRNDirect(
+    steps = [
+        'RecoFakeHLT',
+        'RecoNanoFakeHLT',
+    ],
+    PU = [
+        'RecoFakeHLT',
+        'RecoNanoFakeHLT',
+    ],
+    suffix = '_photonDRNDirect',
+    offset = 0.32,
+)
+upgradeWFs['photonDRNDirect'].step3 = {
+    '--procModifiers': 'photonDRNDirect'
+}
+
 
 # Patatrack workflows (NoPU and PU):
 #   - TTbar_14, ZMM_14", ZEE_14, ZTT_14, NuGun, SingleMu, QCD_Pt15To7000_Flat for

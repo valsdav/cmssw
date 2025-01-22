@@ -90,7 +90,7 @@ void testSimpleDNN::test() {
     particle_index[i] = j;
     particle_index_es[i] = j;
   }
-
+  
   inputs.push_back(rechit_features);
   inputs.push_back(rechit_flag);
   inputs.push_back(rechit_gain);

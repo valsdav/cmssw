@@ -121,6 +121,10 @@ from PhysicsTools.PatAlgos.slimming.patPhotonDRNCorrector_cfi import patPhotonsD
 from Configuration.ProcessModifiers.photonDRN_cff import _photonDRN
 _photonDRN.toReplaceWith(slimmingTask, cms.Task(slimmingTask.copy(), patPhotonsDRN))
 
+from PhysicsTools.PatAlgos.slimming.patPhotonDRNCorrectorDirect_cfi import patPhotonsDRNDirect
+from Configuration.ProcessModifiers.photonDRNDirect_cff import photonDRNDirect
+photonDRNDirect.toReplaceWith(slimmingTask, cms.Task(slimmingTask.copy(), patPhotonsDRNDirect))
+
 from Configuration.Eras.Modifier_run3_upc_cff import run3_upc
 from PhysicsTools.PatAlgos.modules import DeDxEstimatorRekeyer
 dedxEstimator = DeDxEstimatorRekeyer()
