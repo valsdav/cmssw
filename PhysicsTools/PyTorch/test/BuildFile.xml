@@ -58,7 +58,6 @@
 </bin>
 </iftool>
 
-
 <bin name="testTorch" file="testTorch.cc">
   <use name="pytorch"/>
 </bin>
