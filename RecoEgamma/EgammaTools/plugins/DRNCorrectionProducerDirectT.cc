@@ -1,4 +1,3 @@
-#include <torch/script.h>
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -41,6 +40,11 @@
 #include <cmath>
 #include <iostream>
 
+#pragma push_macro("ClassDef")
+#undef ClassDef
+#include <torch/torch.h>
+#include <torch/script.h>
+#pragma pop_macro("ClassDef")
 /*
  * DRNCorrectionProducerDirectT
  *
@@ -225,6 +229,9 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
    * batch{SB}: graph models require explicitely passing the particle index for each vertex
    */
   std::cout << "Creating tensors" << std::endl;
+  std::cout << "nHitsECAL: " << nHitsECAL << std::endl;
+  std::cout << "nHitsES: " << nHitsES << std::endl;
+  std::cout << "nValidPart_: " << nValidPart_ << std::endl;
   auto dataxECAL = torch::empty({nHitsECAL, 5}, torch::kFloat32);
   auto datafECAL = torch::empty({nHitsECAL}, torch::kInt64);
   auto dataGainECAL = torch::empty({nHitsECAL}, torch::kInt64);
@@ -348,6 +355,34 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
    * Convert input tensors to server data format
    */
 
+  // Print the input tensors for debugging
+  std::cout << "Printing input tensors" << std::endl;
+  for (unsigned i = 0; i < nHitsECAL; i++) {
+    std::cout << "xECAL: ";
+    for (unsigned j = 0; j < 5; j++) {
+      std::cout << inputxECAL[i][j] << " ";
+    }
+    std::cout << std::endl;
+  
+    std::cout << "fECAL: " << inputfECAL[i] << std::endl;
+    std::cout << "gainECAL: " << inputGainECAL[i] << std::endl;
+    std::cout << "batchECAL: " << inputBatchECAL[i] << std::endl;
+    std::cout << "======================"<<std::endl;
+    
+  }
+  for (unsigned i = 0; i < nHitsES; i++) {
+    std::cout << "xES: ";
+    for (unsigned j = 0; j < 4; j++) {
+      std::cout << inputxES[i][j] << " ";
+    }
+    std::cout << std::endl;
+    
+    std::cout << "fES: " << inputfES[i] << std::endl;
+    std::cout << "batchES: " << inputBatchES[i] << std::endl;
+    std::cout << "======================"<<std::endl;
+	}
+			
+
   inputs.push_back(dataxECAL);
   inputs.push_back(datafECAL);
   inputs.push_back(dataGainECAL);
@@ -356,12 +391,6 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
   inputs.push_back(dataxES);
   inputs.push_back(datafES);
   inputs.push_back(dataBatchES);
-
-  //print the dataBatch
-  std::cout << "dataBatchECAL: " << std::endl;
-  for (const auto & i : dataBatchECAL) std::cout << inputBatchECAL[i] << " ";
-  std::cout << "dataBatchES" << std::endl;
-  for (const auto & i : dataBatchES) std::cout << inputBatchES[i] << " ";
 
   //const auto& particles_ = iEvent.getHandle(particleToken_);
 
