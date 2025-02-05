@@ -39,7 +39,7 @@
 #include "RecoEcal/EgammaCoreTools/interface/PositionCalc.h"
 
 #include <cmath>
-
+#include <iostream>
 
 /*
  * DRNCorrectionProducerDirectT
@@ -224,16 +224,16 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
    * gx: (rho, H/E) additional high-level features.
    * batch{SB}: graph models require explicitely passing the particle index for each vertex
    */
-
+  std::cout << "Creating tensors" << std::endl;
+  auto dataxECAL = torch::empty({nHitsECAL, 5}, torch::kFloat32);
+  auto datafECAL = torch::empty({nHitsECAL}, torch::kInt64);
+  auto dataGainECAL = torch::empty({nHitsECAL}, torch::kInt64);
+  auto dataxES = torch::empty({nHitsES, 4}, torch::kFloat32);
+  auto datafES = torch::empty({nHitsES}, torch::kInt64);
   
-  auto dataxECAL = torch::empty({1, nHitsECAL, 5}, torch::kFloat32);
-  auto datafECAL = torch::empty({1}, torch::kInt64);
-  auto dataGainECAL = torch::empty({1}, torch::kInt64);
-  auto dataGx = torch::empty({1, 2}, torch::kFloat32);
-  auto dataBatchECAL = torch::empty({1, nHitsECAL}, torch::kInt64);
-  auto dataxES = torch::empty({1, nHitsES, 4}, torch::kFloat32);
-  auto datafES = torch::empty({1}, torch::kInt64);
-  auto dataBatchES = torch::empty({1, nHitsES}, torch::kInt64);
+  auto dataGx = torch::empty({static_cast<long int>(nValidPart_), 2}, torch::kFloat32);
+  auto dataBatchECAL = torch::empty({nHitsECAL}, torch::kInt64);
+  auto dataBatchES = torch::empty({nHitsES}, torch::kInt64);
 
   // accessors
   auto inputxECAL = dataxECAL.accessor<float, 2>();
@@ -245,52 +245,13 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
   auto inputBatchECAL = dataBatchECAL.accessor<int64_t, 1>();
   auto inputBatchES = dataBatchES.accessor<int64_t, 1>();  
 
-  /*
-  auto& inputxECAL = iInput.at("xECAL__0");
-  inputxECAL.setShape(0, nHitsECAL);
-  auto dataxECAL = inputxECAL.allocate<float>();
-  auto& vdataxECAL = (*dataxECAL)[0];
-
-  auto& inputfECAL = iInput.at("fECAL__1");
-  inputfECAL.setShape(0, nHitsECAL);
-  auto datafECAL = inputfECAL.allocate<int64_t>();
-  auto& vdatafECAL = (*datafECAL)[0];
-
-  auto& inputGainECAL = iInput.at("gain__2");
-  inputGainECAL.setShape(0, nHitsECAL);
-  auto dataGainECAL = inputGainECAL.allocate<int64_t>();
-  auto& vdataGainECAL = (*dataGainECAL)[0];
-
-  auto& inputGx = iInput.at("graph_x__5");
-  inputGx.setShape(0, nValidPart_);
-  auto dataGx = inputGx.allocate<float>();
-  auto& vdataGx = (*dataGx)[0];
-
-  auto& inputBatchECAL = iInput.at("xECAL_batch__6");
-  inputBatchECAL.setShape(0, nHitsECAL);
-  auto dataBatchECAL = inputBatchECAL.allocate<int64_t>();
-  auto& vdataBatchECAL = (*dataBatchECAL)[0];
-
-  auto& inputxES = iInput.at("xES__3");
-  inputxES.setShape(0, nHitsES);
-  auto dataxES = inputxES.allocate<float>();
-  auto& vdataxES = (*dataxES)[0];
-
-  auto& inputfES = iInput.at("fES__4");
-  inputfES.setShape(0, nHitsES);
-  auto datafES = inputfES.allocate<int64_t>();
-  auto& vdatafES = (*datafES)[0];
-
-  auto& inputBatchES = iInput.at("xES_batch__7");
-  inputBatchES.setShape(0, nHitsES);
-  auto dataBatchES = inputBatchES.allocate<int64_t>();
-  auto& vdataBatchES = (*dataBatchES)[0];
-  */
 
   /*
    * Fill input tensors by iterating over particles...
    */
   int64_t partNum = 0;
+  int64_t hitNum = 0;
+  int64_t hitNumES = 0;
   CaloCellGeometryMayOwnPtr geom;
   for (auto& part : *particles_) {
     const reco::SuperClusterRef& sc = part.superCluster();
@@ -302,7 +263,6 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
     EcalRecHitCollection::const_iterator hit;
 
     //iterate over ECAL hits...
-    int64_t hitNum = 0;
     for (const auto& detitr : hitsAndFractions) {
       DetId id = detitr.first.rawId();
       if (isEB(part)) {
@@ -323,12 +283,6 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
       inputxECAL[hitNum][3] = rescale(hit->energy() * detitr.second, ECAL_MIN, ECAL_RANGE);
       inputxECAL[hitNum][4] = rescale(ped->find(detitr.first)->rms(1), NOISE_MIN, NOISE_RANGE);
 
-      //vdataxECAL.push_back(rescale(pos.x(), XY_MIN, XY_RANGE));
-      //vdataxECAL.push_back(rescale(pos.y(), XY_MIN, XY_RANGE));
-      //vdataxECAL.push_back(rescale(pos.z(), Z_MIN, Z_RANGE));
-      //vdataxECAL.push_back(rescale(hit->energy() * detitr.second, ECAL_MIN, ECAL_RANGE));
-      //vdataxECAL.push_back(rescale(ped->find(detitr.first)->rms(1), NOISE_MIN, NOISE_RANGE));
-
       //fill fECAL
       int64_t flagVal = 0;
       if (hit->checkFlag(EcalRecHit::kGood))
@@ -339,7 +293,6 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
         flagVal += 4;
 
       inputfECAL[0] = flagVal;
-      //vdatafECAL.push_back(flagVal);
 
       //fill gain
       int64_t gainVal = 0;
@@ -351,16 +304,13 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
         gainVal = 2;
 
       inputGainECAL[hitNum] = gainVal;
-      //vdataGainECAL.push_back(gainVal);
 
       //fill batch number
       inputBatchECAL[hitNum] = partNum;
       ++hitNum;
-      //vdataBatchECAL.push_back(partNum);
     }  //end iterate over ECAL hits
 
     //iterate over ES clusters...
-    int64_t hitNumES = 0;
     for (auto iES = sc->preshowerClustersBegin(); iES != sc->preshowerClustersEnd(); ++iES) {
       for (const auto& ESitr : (*iES)->hitsAndFractions()) {  //iterate over ES hits
         hit = recHitsES.find(ESitr.first);
@@ -372,10 +322,6 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
 	      inputxES[hitNumES][1] = rescale(pos.y(), XY_MIN, XY_RANGE);
 	      inputxES[hitNumES][2] = rescale(pos.z(), Z_MIN, Z_RANGE);
 	      inputxES[hitNumES][3] = rescale(hit->energy(), ES_MIN, ES_RANGE);
-        //vdataxES.push_back(rescale(pos.x(), XY_MIN, XY_RANGE));
-        //vdataxES.push_back(rescale(pos.y(), XY_MIN, XY_RANGE));
-        //vdataxES.push_back(rescale(pos.z(), Z_MIN, Z_RANGE));
-        //vdataxES.push_back(rescale(hit->energy(), ES_MIN, ES_RANGE));
 
         //fill fES
         int64_t flagVal = 0;
@@ -383,20 +329,16 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
           flagVal += 1;
 
         inputfES[hitNumES] = flagVal;
-        //vdatafES.push_back(flagVal);
 
         //fill batchES
         inputBatchES[hitNumES] = partNum;
         ++hitNumES;
-        //vdataBatchES.push_back(partNum);
       }  //end iterate over ES hits
     }  //end iterate over ES clusters
 
     //fill gx
     inputGx[partNum][0] = rescale(rho, RHO_MIN, RHO_RANGE);
     inputGx[partNum][1] = rescale(part.hadronicOverEm(), HOE_MIN, HOE_RANGE);
-    //vdataGx.push_back(rescale(rho, RHO_MIN, RHO_RANGE));
-    //vdataGx.push_back(rescale(part.hadronicOverEm(), HOE_MIN, HOE_RANGE));
 
     //increment particle number
     ++partNum;
@@ -415,23 +357,18 @@ void DRNCorrectionProducerDirectT<T>::produce(edm::Event& iEvent, edm::EventSetu
   inputs.push_back(datafES);
   inputs.push_back(dataBatchES);
 
-  /*
-  inputxECAL.toServer(dataxECAL);
-  inputfECAL.toServer(datafECAL);
-  inputGainECAL.toServer(dataGainECAL);
-  inputBatchECAL.toServer(dataBatchECAL);
+  //print the dataBatch
+  std::cout << "dataBatchECAL: " << std::endl;
+  for (const auto & i : dataBatchECAL) std::cout << inputBatchECAL[i] << " ";
+  std::cout << "dataBatchES" << std::endl;
+  for (const auto & i : dataBatchES) std::cout << inputBatchES[i] << " ";
 
-  inputGx.toServer(dataGx);
-
-  inputxES.toServer(dataxES);
-  inputfES.toServer(datafES);
-  inputBatchES.toServer(dataBatchES);
-  */
   //const auto& particles_ = iEvent.getHandle(particleToken_);
 
   std::vector<std::pair<float, float>> corrections;
   corrections.reserve(nPart_);
 
+  std::cout << "calling methods" << std::endl;
   //if there are no particles, the fromServer() call will fail
   //but we can just put() an empty valueMap
   if (nPart_) {
