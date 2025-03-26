@@ -55,6 +55,8 @@ namespace tensorflow {
     SessionOptions& getSessionOptions() { return _options; };
     int getNThreads() const { return _nThreads; };
     Backend getBackend() const { return _backend; };
+
+    static Backend getBackendFromString(const std::string& backend);
   };
 
   // set the tensorflow log level

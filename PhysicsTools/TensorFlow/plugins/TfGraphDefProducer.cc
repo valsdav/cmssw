@@ -20,6 +20,7 @@
 #include "FWCore/Framework/interface/ESProducer.h"
 
 #include "FWCore/Framework/interface/ESHandle.h"
+#include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "PhysicsTools/TensorFlow/interface/TfGraphRecord.h"
 #include "PhysicsTools/TensorFlow/interface/TfGraphDefWrapper.h"
 
@@ -36,11 +37,13 @@ public:
 
 private:
   const std::string filename_;
+  const tensorflow::Backend backend_;
   // ----------member data ---------------------------
 };
 
 TfGraphDefProducer::TfGraphDefProducer(const edm::ParameterSet& iConfig)
-    : filename_(iConfig.getParameter<edm::FileInPath>("FileName").fullPath()) {
+    : filename_(iConfig.getParameter<edm::FileInPath>("FileName").fullPath()),
+      backend_(tensorflow::Options::getBackendFromString(iConfig.getParameter<std::string>("backend"))) {
   auto componentName = iConfig.getParameter<std::string>("ComponentName");
   setWhatProduced(this, componentName);
 }
@@ -48,13 +51,15 @@ TfGraphDefProducer::TfGraphDefProducer(const edm::ParameterSet& iConfig)
 // ------------ method called to produce the data  ------------
 TfGraphDefProducer::ReturnType TfGraphDefProducer::produce(const TfGraphRecord& iRecord) {
   auto* graph = tensorflow::loadGraphDef(filename_);
-  return std::make_unique<TfGraphDefWrapper>(tensorflow::createSession(graph), graph);
+  tensorflow::Options options(backend_);
+  return std::make_unique<TfGraphDefWrapper>(tensorflow::createSession(graph, options), graph);
 }
 
 void TfGraphDefProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<std::string>("ComponentName", "tfGraphDef");
   desc.add<edm::FileInPath>("FileName", edm::FileInPath());
+  desc.add<std::string>("backend", "cpu");
   descriptions.add("tfGraphDefProducer", desc);
 }
 

@@ -78,6 +78,22 @@ namespace tensorflow {
     }
   }
 
+  Backend Options::getBackendFromString(const std::string& backend) {
+    if (backend == "cpu") {
+      return Backend::cpu;
+    } else if (backend == "cuda") {
+      return Backend::cuda;
+    } else if (backend == "rocm") {
+      return Backend::rocm;
+    } else if (backend == "intel") {
+      return Backend::intel;
+    } else if (backend == "best") {
+      return Backend::best;
+    } else {
+      throw cms::Exception("InvalidBackend") << "Invalid backend " << backend << " specified";
+    }
+  }
+
   void setLogging(const std::string& level) {
     /*
      * 0 = all messages are logged (default behavior)
