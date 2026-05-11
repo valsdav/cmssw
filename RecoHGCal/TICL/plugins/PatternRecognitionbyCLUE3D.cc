@@ -699,7 +699,12 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
   const auto &critical_transverse_distance =
       useAbsoluteProjectiveScale_ ? criticalXYDistance_ : criticalEtaPhiDistance_;
   // find cluster seeds and outlier
+
+  constexpr bool isBarrel = std::is_same<TILES, TICLLayerTilesBarrel>::value;
   unsigned int maxLayer = (isBarrel_) ? this->rhtools_->lastLayerBarrel() : 2 * this->rhtools_->lastLayer();
+
+  std::vector<std::pair<unsigned int, unsigned int>> seed_clusterIdx_map;
+
   for (unsigned int layer = 0; layer < maxLayer; layer++) {
     auto &clustersOnLayer = clusters_[layer];
     unsigned int numberOfClusters = clustersOnLayer.x.size();
@@ -727,6 +732,7 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
         }
         clustersOnLayer.clusterIndex[i] = nTracksters++;
         tracksterSeedAlgoId_.push_back(algoId);
+        seed_clusterIdx_map.emplace_back(layer, i);
         clustersOnLayer.isSeed[i] = true;
         localStack.emplace_back(layer, i);
       } else if (!isOutlier) {
@@ -748,16 +754,94 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
     }
   }
 
+  //vector keeping the soaIdx of the ECAL cluster inside a trackster (not the seed)
+  std::vector<int> ecal_LC_content_idx (nTracksters, -1);
+
   // Propagate cluster index
   while (!localStack.empty()) {
     auto [lyrIdx, soaIdx] = localStack.back();
     auto &thisSeed = clusters_[lyrIdx].followers[soaIdx];
+    
+    // This is the algo ID
+    auto current_algoId =  clusters_[lyrIdx].algoId[soaIdx];
+    auto current_tracksterid = clusters_[lyrIdx].clusterIndex[soaIdx];
+
+    if ((isBarrel) && 
+        (current_algoId==0) && 
+        (!clusters_[lyrIdx].isSeed[soaIdx]) &&
+         ((current_algoId  == tracksterSeedAlgoId_[current_tracksterid]))){
+      //skip this connection --> create a new trackster
+      clusters_[lyrIdx].clusterIndex[soaIdx] = nTracksters++;
+      tracksterSeedAlgoId_.push_back(current_algoId);
+      ecal_LC_content_idx.emplace_back(-1);   // Only the ECAL LC not seeds are saved
+      clusters_[lyrIdx].isSeed[soaIdx] = true;
+      // Do not pop from the stack, it will be reanalyze
+      continue;
+    }
+
+    if ((isBarrel) && 
+      (current_algoId==0) && 
+      (!clusters_[lyrIdx].isSeed[soaIdx]) && 
+      ( tracksterSeedAlgoId_[current_tracksterid]!=0)){
+        
+        
+        if ( ecal_LC_content_idx[current_tracksterid] != -1){
+        // We need to compare ECAL LCs
+        // We need to get the cluster index of the seed cluster from the trackster seed idx
+        auto [seed_lyrIdx, seed_soaIdx] = seed_clusterIdx_map[current_tracksterid];
+        auto otherEcal_soaIdx = ecal_LC_content_idx[current_tracksterid];
+        constexpr unsigned int otherEcal_lyrIdx = 0;
+
+        auto dist_first = reco::deltaR2(clusters_[lyrIdx].eta[soaIdx],
+                            clusters_[lyrIdx].phi[soaIdx],
+                            clusters_[seed_lyrIdx].eta[seed_soaIdx],
+                            clusters_[seed_lyrIdx].phi[seed_soaIdx]);
+
+        auto dist_second = reco::deltaR2(clusters_[otherEcal_lyrIdx].eta[otherEcal_soaIdx],
+                            clusters_[otherEcal_lyrIdx].phi[otherEcal_soaIdx],
+                            clusters_[seed_lyrIdx].eta[seed_soaIdx],
+                            clusters_[seed_lyrIdx].phi[seed_soaIdx]);
+
+        if (dist_first < dist_second){
+          // swappone
+          ecal_LC_content_idx[current_tracksterid] = soaIdx;  // Now I'm the ECAL LC of that tracksters
+          //clusters_[lyrIdx].clusterIndex[soaIdx] = current_tracksterid;  // useless, if I'm looping on this, it has been already "linked" as a follower
+          // Now remove the other , create a new trackster
+          clusters_[otherEcal_lyrIdx].clusterIndex[otherEcal_soaIdx] = nTracksters++;
+          tracksterSeedAlgoId_.push_back(current_algoId);
+          ecal_LC_content_idx.emplace_back(-1);
+          clusters_[otherEcal_lyrIdx].isSeed[otherEcal_soaIdx] = true;
+          localStack.emplace_back(otherEcal_lyrIdx, otherEcal_soaIdx);
+        }else{
+          //skip this connection --> create a new trackster
+          //Pruning
+          clusters_[lyrIdx].clusterIndex[soaIdx] = nTracksters++;
+          tracksterSeedAlgoId_.push_back(current_algoId);
+          ecal_LC_content_idx.emplace_back(-1);
+          clusters_[lyrIdx].isSeed[soaIdx] = true;
+          // Do not pop from the stack, it will be reanalyzed
+          continue;
+        }
+
+      }else{
+        // I'm ECAL, there is nobody else, I take this fucking trackster
+        ecal_LC_content_idx[current_tracksterid] = soaIdx;  // Now I'm the ECAL LC of that tracksters
+      }
+    }// end of check for other ECAL LC
+
+    // We arrive here if
+    // - the cluster is the seed
+    // - the cluster is not ECAL
+    // - the cluster is ECAL, gets assigned to the trackster as the best ECAL
     localStack.pop_back();
 
     // loop over followers
     for (auto [follower_lyrIdx, follower_soaIdx] : thisSeed) {
       // pass id to a follower
-      clusters_[follower_lyrIdx].clusterIndex[follower_soaIdx] = clusters_[lyrIdx].clusterIndex[soaIdx];
+      if (clusters_[follower_lyrIdx].isSeed[follower_soaIdx]) {
+          continue; 
+      }
+      clusters_[follower_lyrIdx].clusterIndex[follower_soaIdx] = current_tracksterid;
       // push this follower to localStack
       localStack.emplace_back(follower_lyrIdx, follower_soaIdx);
     }
