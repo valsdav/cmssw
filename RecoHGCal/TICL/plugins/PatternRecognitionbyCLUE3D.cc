@@ -762,7 +762,7 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
     auto &thisSeed = clusters_[lyrIdx].followers[soaIdx];
     
     // This is the algo ID
-    auto (current_algoId) =  clusters_[lyrIdx].algoId[soaIdx];
+    auto current_algoId =  clusters_[lyrIdx].algoId[soaIdx];
     auto current_tracksterid = clusters_[lyrIdx].clusterIndex[soaIdx];
 
     if ((isBarrel) && 
@@ -791,12 +791,12 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
         auto otherEcal_soaIdx = ecal_LC_content_idx[current_tracksterid];
         constexpr unsigned int otherEcal_lyrIdx = 0;
 
-        dist_first = reco::deltaR2(clusters_[lyrIdx].eta[soaIdx],
+        auto dist_first = reco::deltaR2(clusters_[lyrIdx].eta[soaIdx],
                             clusters_[lyrIdx].phi[soaIdx],
                             clusters_[seed_lyrIdx].eta[seed_soaIdx],
                             clusters_[seed_lyrIdx].phi[seed_soaIdx]);
 
-        dist_second = reco::deltaR2(clusters_[otherEcal_lyrIdx].eta[otherEcal_soaIdx],
+        auto dist_second = reco::deltaR2(clusters_[otherEcal_lyrIdx].eta[otherEcal_soaIdx],
                             clusters_[otherEcal_lyrIdx].phi[otherEcal_soaIdx],
                             clusters_[seed_lyrIdx].eta[seed_soaIdx],
                             clusters_[seed_lyrIdx].phi[seed_soaIdx]);
@@ -837,6 +837,9 @@ int PatternRecognitionbyCLUE3D<TILES>::findAndAssignTracksters(
     // loop over followers
     for (auto [follower_lyrIdx, follower_soaIdx] : thisSeed) {
       // pass id to a follower
+      if (clusters_[follower_lyrIdx].isSeed[follower_soaIdx]) {
+          continue; 
+      }
       clusters_[follower_lyrIdx].clusterIndex[follower_soaIdx] = current_tracksterid;
       // push this follower to localStack
       localStack.emplace_back(follower_lyrIdx, follower_soaIdx);
