@@ -40,6 +40,8 @@
 #include "SimDataFormats/CaloHit/interface/PCaloHit.h"
 #include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
 #include "DataFormats/EgammaReco/interface/SuperCluster.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 #include "RecoParticleFlow/PFProducer/interface/PFMuonAlgo.h"
@@ -162,6 +164,7 @@ public:
     if (tracksterType_ != TracksterType::Trackster) {
       trackster_tree_->Branch("regressed_pt", &simtrackster_regressed_pt);
       trackster_tree_->Branch("pdgID", &simtrackster_pdgID);
+      trackster_tree_->Branch("CPidx", &simtrackster_CPidx);
       trackster_tree_->Branch("trackIdx", &simtrackster_trackIdxs);
       trackster_tree_->Branch("timeBoundary", &simtrackster_timeBoundary);
       trackster_tree_->Branch("boundaryX", &simtrackster_boundaryX);
@@ -220,6 +223,7 @@ public:
     simtrackster_regressed_pt.clear();
     simtrackster_pdgID.clear();
     simtrackster_trackIdxs.clear();
+    simtrackster_CPidx.clear();
     simtrackster_timeBoundary.clear();
     simtrackster_boundaryX.clear();
     simtrackster_boundaryY.clear();
@@ -289,8 +293,20 @@ public:
       if (tracksterType_ != TracksterType::Trackster) {  // is simtrackster
         auto const& simclusters = *simClusters_h;
         auto const& caloparticles = *caloparticles_h;
+        
+        std::map<uint, uint> SimClusterToCaloParticleMap;
+        for (const auto& cp : caloparticles) {
+          auto cpIndex = &cp - &caloparticles[0];
+          for (const auto& scRef : cp.simClusters()) {
+            auto const& sc = *(scRef);
+            auto const scIndex = &sc - &simclusters[0];
+            SimClusterToCaloParticleMap[scIndex] = cpIndex;
+          }
+        }
 
         simtrackster_timeBoundary.push_back(trackster_iterator->boundaryTime());
+
+        
 
         /* SimTracksters can be built from either a CaloParticle or a SimCluster
         The SimTrackster "fromCP" collection is built solely from CaloParticle (all CPs that have association to reco in HGCAL)
@@ -299,14 +315,18 @@ public:
            - a SimCluster (other cases)
         Thus trackster.seedIndex() can point to either CaloParticle or SimCluster collection (check seedID to differentiate)
         */
+        auto CPindex = 0;
         using CaloObjectVariant = std::variant<CaloParticle, SimCluster>;
         CaloObjectVariant caloObj;
         if (trackster_iterator->seedID() == caloparticles_h.id()) {
           caloObj = caloparticles[trackster_iterator->seedIndex()];
+          CPindex = trackster_iterator->seedIndex();
         } else {
           caloObj = simclusters[trackster_iterator->seedIndex()];
+          CPindex = SimClusterToCaloParticleMap[trackster_iterator->seedIndex()];
         }
 
+        simtrackster_CPidx.push_back(CPindex);
         simtrackster_pdgID.push_back(std::visit([](auto&& obj) { return obj.pdgId(); }, caloObj));
         auto const& simTrack = std::visit([](auto&& obj) { return obj.g4Tracks()[0]; }, caloObj);
         auto const& caloPt = std::visit([](auto&& obj) { return obj.pt(); }, caloObj);
@@ -463,10 +483,11 @@ private:
   std::vector<float> trackster_sigmaPCA3;
   std::vector<float> trackster_barycenter_eta;
   std::vector<float> trackster_barycenter_phi;
-
+  
   // for simtrackster
   std::vector<float> simtrackster_regressed_pt;
   std::vector<int> simtrackster_pdgID;
+  std::vector<int> simtrackster_CPidx;
   std::vector<std::vector<int>> simtrackster_trackIdxs;
   std::vector<float> simtrackster_timeBoundary;
   std::vector<float> simtrackster_boundaryX;
@@ -622,6 +643,7 @@ private:
   const edm::EDGetTokenT<std::vector<ticl::Trackster>> simTracksters_SC_token_;  // needed for simticlcandidate
   const edm::EDGetTokenT<std::vector<TICLCandidate>> simTICLCandidate_token_;
 
+
   // associators
   const std::vector<edm::ParameterSet>
       associations_parameterSets_;  ///< A parameter set for each associator collection to dump (with treeName, etc)
@@ -634,6 +656,7 @@ private:
   TTree* associations_tree_;
 
   const edm::EDGetTokenT<std::vector<SimCluster>> simclusters_token_;
+  const edm::EDGetTokenT<reco::GenParticleCollection> genparticles_token_;
   const edm::EDGetTokenT<std::vector<CaloParticle>> caloparticles_token_;
   const std::vector<edm::InputTag> label_rechits;
   const std::vector<edm::EDGetTokenT<HGCRecHitCollection>> rechits_tokens_;
@@ -656,6 +679,7 @@ private:
   bool saveSimTICLCandidate_;
   bool saveTracks_;
   bool saveHits_;
+  bool saveGenParticles_;
 
   // Output tree
   TTree* tree_;
@@ -665,6 +689,15 @@ private:
   // Variables for branches
   edm::EventID eventId_;
   unsigned int nclusters_;
+
+  std::vector<float> genpart_mass;
+  std::vector<int> genpart_pdgId;
+  std::vector<float> genpart_phi;
+  std::vector<float> genpart_eta;
+  std::vector<float> genpart_pt;
+  std::vector<float> genpart_energy;
+  std::vector<int> genpart_genPartIdxMother;
+  std::vector<int> genpart_status;
 
   std::vector<std::vector<unsigned int>>
       superclustering_linkedResultTracksters;  // Map of indices from superclusteredTracksters collection back into ticlTrackstersCLUE3DEM collection
@@ -791,6 +824,7 @@ private:
   TTree* simTICLCandidate_tree;
   TTree* rechits_tree_;
   TTree* simhits_tree_;
+  TTree* genparticles_tree_;
 };
 
 void TICLDumper::clearVariables() {
@@ -800,6 +834,15 @@ void TICLDumper::clearVariables() {
   for (TracksterDumperHelper& tsDumper : tracksters_dumperHelpers_) {
     tsDumper.clearVariables();
   }
+
+  genpart_mass.clear();
+  genpart_pdgId.clear();
+  genpart_phi.clear();
+  genpart_eta.clear();
+  genpart_pt.clear();
+  genpart_energy.clear();
+  genpart_genPartIdxMother.clear();
+  genpart_status.clear();
 
   superclustering_linkedResultTracksters.clear();
 
@@ -954,6 +997,7 @@ TICLDumper::TICLDumper(const edm::ParameterSet& ps)
       // The DumperHelpers should not be moved after construction (needed by TTree branch pointers), so construct them all here
       associations_dumperHelpers_(associations_parameterSets_.size()),
       simclusters_token_(consumes(ps.getParameter<edm::InputTag>("simclusters"))),
+      genparticles_token_(consumes<reco::GenParticleCollection>(ps.getParameter<edm::InputTag>("genparticles"))),
       caloparticles_token_(consumes(ps.getParameter<edm::InputTag>("caloparticles"))),
       label_rechits(ps.getParameter<std::vector<edm::InputTag>>("label_rechits")),
       rechits_tokens_{edm::vector_transform(
@@ -976,7 +1020,8 @@ TICLDumper::TICLDumper(const edm::ParameterSet& ps)
       saveTICLCandidate_(ps.getParameter<bool>("saveSimTICLCandidate")),
       saveSimTICLCandidate_(ps.getParameter<bool>("saveSimTICLCandidate")),
       saveTracks_(ps.getParameter<bool>("saveTracks")),
-      saveHits_(ps.getParameter<bool>("saveHits")) {
+      saveHits_(ps.getParameter<bool>("saveHits")),
+      saveGenParticles_(ps.getParameter<bool>("saveGenParticles"))  {
   if (saveSuperclustering_) {
     superclustering_linkedResultTracksters_token =
         consumes<std::vector<std::vector<unsigned int>>>(ps.getParameter<edm::InputTag>("superclustering"));
@@ -1030,6 +1075,21 @@ void TICLDumper::beginJob() {
     tracksters_trees.push_back(tree);
     tracksters_dumperHelpers_[i].initTree(tree, &eventId_);
   }
+
+   if (saveGenParticles_) {
+    genparticles_tree_ = fs->make<TTree>("genparticles", "Generator Particles");
+    genparticles_tree_->Branch("event", &eventId_);
+    genparticles_tree_->Branch("GenPart_mass", &genpart_mass);
+    genparticles_tree_->Branch("GenPart_pdgId", &genpart_pdgId);
+    genparticles_tree_->Branch("GenPart_phi", &genpart_phi);
+    genparticles_tree_->Branch("GenPart_eta", &genpart_eta);
+    genparticles_tree_->Branch("GenPart_pt", &genpart_pt);
+    genparticles_tree_->Branch("GenPart_energy", &genpart_energy);
+    genparticles_tree_->Branch("GenPart_genPartIdxMother", &genpart_genPartIdxMother);
+    genparticles_tree_->Branch("GenPart_status", &genpart_status);
+  }
+
+
   if (saveHits_) {
     rechits_tree_ = fs->make<TTree>("rechits", "HGCAL rechits");
     rechits_tree_->Branch("ID", &rechit_ID);
@@ -1289,6 +1349,37 @@ void TICLDumper::analyze(const edm::Event& event, const edm::EventSetup& setup) 
   auto simclusters_h = event.getHandle(simclusters_token_);
 
   nclusters_ = clusters.size();
+
+  if (saveGenParticles_) {
+    edm::Handle<reco::GenParticleCollection> genparticles_h;
+    event.getByToken(genparticles_token_, genparticles_h);
+    const auto& genparticles = *genparticles_h;
+
+    for (size_t i = 0; i < genparticles.size(); ++i) {
+      const auto& gp = genparticles[i];
+      genpart_mass.push_back(gp.mass());
+      genpart_pdgId.push_back(gp.pdgId());
+      genpart_phi.push_back(gp.phi());
+      genpart_eta.push_back(gp.eta());
+      genpart_pt.push_back(gp.pt());
+      genpart_energy.push_back(gp.energy());
+
+      // Find mother index
+      int motherIdx = -1;
+      if (gp.numberOfMothers() > 0) {
+        const auto& mother = gp.mother(0);
+        // Find the index of the mother in the genparticles collection
+        for (size_t j = 0; j < genparticles.size(); ++j) {
+          if (&genparticles[j] == mother) {
+            motherIdx = j;
+            break;
+          }
+        }
+      }
+      genpart_genPartIdxMother.push_back(motherIdx);
+      genpart_status.push_back(gp.status());
+    }
+  }
 
   if (saveHits_) {
     edm::Handle<std::unordered_map<DetId, const unsigned int>> hitMap;
@@ -1574,6 +1665,8 @@ void TICLDumper::analyze(const edm::Event& event, const edm::EventSetup& setup) 
     rechits_tree_->Fill();
     simhits_tree_->Fill();
   }
+  if (saveGenParticles_)
+    genparticles_tree_->Fill();
 }
 
 void TICLDumper::endJob() {}
@@ -1633,6 +1726,8 @@ void TICLDumper::fillDescriptions(edm::ConfigurationDescriptions& descriptions) 
                                         edm::InputTag("g4SimHits", "HGCHitsHEback")});
   desc.add<edm::InputTag>("hitMapTag", edm::InputTag("recHitMapProducer", "hgcalRecHitMap"));
 
+  desc.add<edm::InputTag>("genparticles", edm::InputTag("genParticles"))->setComment("Generator particles collection");
+
   // Settings for dumping trackster associators (recoToSim & simToReco)
   edm::ParameterSetDescription associatorDescValidator;
   associatorDescValidator.add<std::string>("branchName")->setComment("Name of the output branches in the tree");
@@ -1656,6 +1751,9 @@ void TICLDumper::fillDescriptions(edm::ConfigurationDescriptions& descriptions) 
   desc.add<bool>("saveRecoSuperclusters", true)
       ->setComment("Save superclustering Egamma collections (as reco::SuperCluster)");
   desc.add<bool>("saveHits", false);
+  
+  desc.add<bool>("saveGenParticles", false);
+
   descriptions.add("ticlDumper", desc);
 }
 
