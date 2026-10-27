@@ -8,6 +8,7 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE::ticl {
 
   using TracksterDeviceCollection = PortableCollection<::ticl::TracksterSoA>;
+  using TracksterBarrelPropertiesDeviceCollection = PortableCollection<::ticl::TracksterBarrelPropertiesSoA>;
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ticl
 

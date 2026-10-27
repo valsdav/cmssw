@@ -7,6 +7,7 @@
 namespace ticl {
 
   using TracksterHostCollection = PortableHostCollection<TracksterSoA>;
+  using TracksterBarrelPropertiesHostCollection = PortableHostCollection<TracksterBarrelPropertiesSoA>;
 
 }  // namespace ticl
 

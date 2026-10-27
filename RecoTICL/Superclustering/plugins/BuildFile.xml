@@ -14,3 +14,12 @@
 <library file="*.cc" name="RecoTICLSuperclusteringPlugins">
   <flags EDM_PLUGIN="1"/>
 </library>
+
+<library file="alpaka/*.cc" name="RecoTICLSuperclusteringPluginsPortable">
+  <use name="DataFormats/CaloRecHit"/>
+  <use name="HeterogeneousCore/AlpakaCore"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="alpaka"/>
+  <flags ALPAKA_BACKENDS="1"/>
+  <flags EDM_PLUGIN="1"/>
+</library>
