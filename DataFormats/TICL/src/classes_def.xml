@@ -1,5 +1,5 @@
 <lcgdict>
-  <class name="ticl::TracksterBarrelPropertiesHostCollection"/>
+  <class name="ticl::TracksterBarrelPropertiesHostCollection" rntupleStreamerMode="true"/>
   <class name="ticl::TracksterBarrelPropertiesHostCollection::Layout"/>
   <class name="ticl::TracksterBarrelPropertiesSoA"/>
   <class name="ticl::TracksterBarrelPropertiesSoA::View"/>
