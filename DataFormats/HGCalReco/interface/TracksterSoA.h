@@ -21,20 +21,6 @@ namespace ticl {
 
   GENERATE_SOA_LAYOUT(TracksterSoATiming, SOA_COLUMN(float, time), SOA_COLUMN(float, timeError))
 
-  GENERATE_SOA_LAYOUT(TracksterSoABarrelProperties,
-                      SOA_COLUMN(float, ecalX),
-                      SOA_COLUMN(float, ecalY),
-                      SOA_COLUMN(float, ecalZ),
-                      SOA_COLUMN(float, ecalEta),
-                      SOA_COLUMN(float, ecalPhi),
-                      SOA_COLUMN(float, hcalBarycenterX),
-                      SOA_COLUMN(float, hcalBarycenterY),
-                      SOA_COLUMN(float, hcalBarycenterZ),
-                      SOA_COLUMN(float, hcalBarycenterEta),
-                      SOA_COLUMN(float, hcalBarycenterPhi),
-                      SOA_COLUMN(uint32_t, nEcalClusters),
-                      SOA_COLUMN(uint32_t, nHcalClusters))
-
   // PCA: eigenvalues in decreasing order, eigenvectors.col(i) the ith principal axis
   GENERATE_SOA_LAYOUT(TracksterSoAPCA,
                       SOA_EIGEN_COLUMN(Eigen::Vector3f, eigenvalues),
@@ -56,14 +42,10 @@ namespace ticl {
                       SOA_BLOCK(pca, TracksterSoAPCA),
                       SOA_BLOCK(id, TracksterSoAId),
                       SOA_BLOCK(vertices, TracksterSoAVertices))
-                    
+
   using TracksterSoA = TracksterSoALayout<>;
   using TracksterSoAView = TracksterSoA::View;
   using TracksterSoAConstView = TracksterSoA::ConstView;
-
-  using TracksterBarrelPropertiesSoA = TracksterSoABarrelProperties<>;
-  using TracksterBarrelPropertiesSoAView = TracksterBarrelPropertiesSoA::View;
-  using TracksterBarrelPropertiesSoAConstView = TracksterBarrelPropertiesSoA::ConstView;
 
 }  // namespace ticl
 

@@ -20,7 +20,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
              float zLimitEm,
              reco::CaloClusterDeviceCollection::ConstView layerClusters,
              HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
-             ticl::TracksterDeviceCollection::View tracksters, bool isBarrel) const;
+             ticl::TracksterDeviceCollection::View tracksters) const;
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 

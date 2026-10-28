@@ -38,9 +38,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           trackstersToken_{produces()},
           ticlGeomToken_{consumesCollector().esConsumes<TICLGeomHost, CaloGeometryRecord>()},
           ticlGeomLookupToken_{consumesCollector().esConsumes<TICLGeomLookupHost, CaloGeometryRecord>()},
-          ticlGeomLayersToken_{consumesCollector().esConsumes<TICLGeomLayersHost, CaloGeometryRecord>()},
-          isBarrel_{config.getParameter<bool>("isBarrel")} {}
-
+          ticlGeomLayersToken_{consumesCollector().esConsumes<TICLGeomLayersHost, CaloGeometryRecord>()} {}
 
     // The numbers of tracksters and of their layer clusters are on the device, and the host needs them to allocate
     // the tracksters
@@ -72,8 +70,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                 zLimitEm,
                 iEvent.get(layerClustersToken_).const_view(),
                 iEvent.get(layerClustersClusteringToken_).const_view(),
-                tracksters.view(),
-                isBarrel_);
+                tracksters.view());
       iEvent.emplace(trackstersToken_, std::move(tracksters));
     }
 
@@ -92,7 +89,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const edm::ESGetToken<TICLGeomLookupHost, CaloGeometryRecord> ticlGeomLookupToken_;
     const edm::ESGetToken<TICLGeomLayersHost, CaloGeometryRecord> ticlGeomLayersToken_;
     const HGCalTrackstersSoAAlgoWrapper algo_{};
-    const bool isBarrel_;
     // The numbers of tracksters and of their layer clusters, copied from the device in acquire and used in produce.
     // Pinned, so that the copies do not block acquire.
     std::optional<cms::alpakatools::host_buffer<unsigned int[]>> counts_;

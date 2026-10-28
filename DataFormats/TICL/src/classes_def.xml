@@ -1,0 +1,7 @@
+<lcgdict>
+  <class name="ticl::TracksterBarrelPropertiesHostCollection"/>
+  <class name="ticl::TracksterBarrelPropertiesHostCollection::Layout"/>
+  <class name="ticl::TracksterBarrelPropertiesSoA"/>
+  <class name="ticl::TracksterBarrelPropertiesSoA::View"/>
+  <class name="edm::Wrapper<ticl::TracksterBarrelPropertiesHostCollection>" splitLevel="0"/>
+</lcgdict>

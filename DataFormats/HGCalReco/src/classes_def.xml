@@ -106,9 +106,6 @@
   <class name="ticl::TracksterSoATiming<128, false>"/>
   <class name="ticl::TracksterSoAPCA<128, false>"/>
   <class name="ticl::TracksterSoAId<128, false>"/>
-  <class name="ticl::TracksterBarrelPropertiesSoA"/>
-  <class name="ticl::TracksterBarrelPropertiesSoA::View"/>
-  <class name="ticl::TracksterSoABarrelProperties<128, false>"/>
   <class name="ticl::AssociationMapLayout<unsigned int, unsigned int>::Layout<128, false>"/>
   <class name="ticl::AssociationMapLayout<unsigned int, unsigned int>::OffsetsLayout<128, false>"/>
   <class name="ticl::AssociationMapLayout<unsigned int, unsigned int>::OffsetBufferLayout<128, false>"/>
