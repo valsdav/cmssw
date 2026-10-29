@@ -11,18 +11,20 @@
 namespace ticl::graph {
 
   struct Params {
-    static constexpr int32_t kMaxEtaBins = 16;
+    static constexpr int32_t kMaxCoefficients = 4;
 
     float seedEtThreshold;  // a selected trackster with et >= seedEtThreshold is a seed
 
-    // Seed windows, binned in |eta_seed|: bin b covers [absEtaEdges[b], absEtaEdges[b+1]); outside the range the
-    // first or the last bin is used. A trackster t is in the window of the seed s if
-    //   detaLow < eta[t] - eta[s] < detaHigh  and  |phi[t] - phi[s]| < dphiMax
-    int32_t nEtaBins;
-    float absEtaEdges[kMaxEtaBins + 1];
-    float detaLow[kMaxEtaBins];
-    float detaHigh[kMaxEtaBins];
-    float dphiMax[kMaxEtaBins];
+    // Seed windows, as polynomials in |eta_seed|: value = sum_k c[k] * |eta_seed|^k. A trackster t is in the window
+    // of the seed s if
+    //   detaLow < (eta[t] - eta[s]) * sign(eta[s]) < detaHigh  and  |phi[t] - phi[s]| < dphiMax
+    // The window is mirrored for negative eta, so detaHigh is always on the side of larger |eta|.
+    int32_t nDetaLow;
+    int32_t nDetaHigh;
+    int32_t nDphiMax;
+    float detaLow[kMaxCoefficients];
+    float detaHigh[kMaxCoefficients];
+    float dphiMax[kMaxCoefficients];
   };
 
   // The quantities of the tracksters that the graph building uses, as device arrays of n entries.
@@ -41,16 +43,21 @@ namespace ticl::graph {
     int32_t nEdges;
   };
 
+  // sum_k c[k] * x^k, with the Horner method
+  ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE float polynomial(float const* c, int32_t n, float x) {
+    float value = c[n - 1];
+    for (int32_t k = n - 2; k >= 0; --k)
+      value = value * x + c[k];
+    return value;
+  }
+
   // The window of a seed at seedEta
   ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE void windowsForEta(
       Params const& p, float seedEta, float& lo, float& hi, float& dphiMax) {
     float const a = seedEta < 0.f ? -seedEta : seedEta;
-    int32_t b = 0;
-    while (b < p.nEtaBins - 1 && a >= p.absEtaEdges[b + 1])
-      ++b;
-    lo = p.detaLow[b];
-    hi = p.detaHigh[b];
-    dphiMax = p.dphiMax[b];
+    lo = polynomial(p.detaLow, p.nDetaLow, a);
+    hi = polynomial(p.detaHigh, p.nDetaHigh, a);
+    dphiMax = polynomial(p.dphiMax, p.nDphiMax, a);
   }
 
   // |a - b|, with the difference wrapped to (-pi, pi]

@@ -24,7 +24,7 @@ ticlTracksterBarrelProperties = _tracksterBarrelPropertiesProducer.clone(
 )
 
 # The graphs of the barrel tracksters with an ECAL layer cluster, for the graph model
-# TODO: the seed threshold and the windows used in the training
+# The seed threshold and the windows are the defaults of TracksterGraphProducer (see its fillDescriptions)
 ticlTracksterGraph = _tracksterGraphProducer.clone(
     tracksters = 'ticlTrackstersSoACLUE3DBarrel',
     barrelProperties = 'ticlTracksterBarrelProperties'

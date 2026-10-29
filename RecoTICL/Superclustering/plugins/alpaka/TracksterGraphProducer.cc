@@ -62,28 +62,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   ::ticl::graph::Params TracksterGraphProducer::makeParams(edm::ParameterSet const& config) {
     using P = ::ticl::graph::Params;
-    auto const edges = config.getParameter<std::vector<double>>("windowAbsEtaEdges");
-    auto const lo = config.getParameter<std::vector<double>>("windowDEtaLow");
-    auto const hi = config.getParameter<std::vector<double>>("windowDEtaHigh");
-    auto const dphi = config.getParameter<std::vector<double>>("windowDPhiMax");
-
-    int32_t const nBins = static_cast<int32_t>(lo.size());
-    if (nBins < 1 || nBins > P::kMaxEtaBins || hi.size() != lo.size() || dphi.size() != lo.size() ||
-        edges.size() != lo.size() + 1)
-      throw cms::Exception("Configuration")
-          << "TracksterGraphProducer: need 1.." << P::kMaxEtaBins
-          << " eta bins, windowAbsEtaEdges with nBins+1 entries and windowDEtaLow/High/DPhiMax with nBins entries";
-
     P p{};
     p.seedEtThreshold = config.getParameter<double>("seedEtThreshold");
-    p.nEtaBins = nBins;
-    for (int32_t b = 0; b <= nBins; ++b)
-      p.absEtaEdges[b] = edges[b];
-    for (int32_t b = 0; b < nBins; ++b) {
-      p.detaLow[b] = lo[b];
-      p.detaHigh[b] = hi[b];
-      p.dphiMax[b] = dphi[b];
-    }
+    // copies the polynomial coefficients of one window parameter
+    auto coefficients = [&config](char const* name, float* c, int32_t& n) {
+      auto const values = config.getParameter<std::vector<double>>(name);
+      if (values.empty() or values.size() > P::kMaxCoefficients)
+        throw cms::Exception("Configuration")
+            << "TracksterGraphProducer: " << name << " needs 1.." << P::kMaxCoefficients << " coefficients";
+      n = values.size();
+      for (int32_t k = 0; k < n; ++k)
+        c[k] = values[k];
+    };
+    coefficients("windowDEtaLow", p.detaLow, p.nDetaLow);
+    coefficients("windowDEtaHigh", p.detaHigh, p.nDetaHigh);
+    coefficients("windowDPhiMax", p.dphiMax, p.nDphiMax);
     return p;
   }
 
@@ -92,12 +85,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     desc.add<edm::InputTag>("tracksters", edm::InputTag("ticlTrackstersSoACLUE3DBarrel"));
     desc.add<edm::InputTag>("barrelProperties", edm::InputTag("ticlTracksterBarrelProperties"))
         ->setComment("only the tracksters with an ECAL layer cluster are nodes");
-    // TODO: the values used in the training (SEED_ET_THRESHOLD and windows_for_eta)
-    desc.add<double>("seedEtThreshold", 1.0)->setComment("seed: et >= seedEtThreshold");
-    desc.add<std::vector<double>>("windowAbsEtaEdges", {0., 1.5})->setComment("|eta_seed| bin edges (nBins+1)");
-    desc.add<std::vector<double>>("windowDEtaLow", {-0.1})->setComment("lowest eta - eta_seed, per bin");
-    desc.add<std::vector<double>>("windowDEtaHigh", {0.1})->setComment("highest eta - eta_seed, per bin");
-    desc.add<std::vector<double>>("windowDPhiMax", {0.1})->setComment("largest |phi - phi_seed|, per bin");
+    desc.add<double>("seedEtThreshold", 1.0)->setComment("seed: et >= seedEtThreshold [GeV]");
+    // The windows are polynomials in |eta_seed|, coefficients from the constant term up. These values approximate
+    // the parametrisation used in the training (to be improved): dphi 1.20 -> 1.45, deta_hi 0.08 -> 0.18 at 1.48.
+    desc.add<std::vector<double>>("windowDEtaLow", {-0.08})
+        ->setComment("lowest (eta - eta_seed) * sign(eta_seed), as a polynomial in |eta_seed|");
+    desc.add<std::vector<double>>("windowDEtaHigh", {0.08, 0., 0.1 / (1.48 * 1.48)})
+        ->setComment("highest (eta - eta_seed) * sign(eta_seed), as a polynomial in |eta_seed|");
+    desc.add<std::vector<double>>("windowDPhiMax", {1.20, 0.25 / 1.5})
+        ->setComment("largest |phi - phi_seed|, as a polynomial in |eta_seed|");
     descriptions.addWithDefaultLabel(desc);
   }
 

@@ -14,6 +14,7 @@
 // result is deterministic.
 
 #include <algorithm>
+#include <bit>
 
 #include <alpaka/alpaka.hpp>
 #include <xtd/xtd.h>
@@ -39,12 +40,27 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     constexpr int32_t kMaxGraphBlocks = 1024;
 
     // Number of int32 and float scratch arrays of size nTracksters
-    constexpr int32_t kNInts = 12;
+    constexpr int32_t kNInts = 13;
     constexpr int32_t kNFloats = 3;
+
+    // eta bins of the selected tracksters, to find the candidates of a seed window without a loop over all the
+    // tracksters. The tracksters outside the range go to the first or the last bin.
+    // ponytail: fixed bins; make them configurable if the windows or the eta range change a lot
+    constexpr float kEtaBinMin = -3.f;
+    constexpr float kEtaBinWidth = 0.05f;
+    constexpr int32_t kNEtaBins = 120;
+    // binCount, binOffset (kNEtaBins + 1), binCursor, reachBits
+    constexpr int32_t kNBinInts = 3 * kNEtaBins + 2;
 
     // Raw pointers into the scratch buffers (all the arrays have nTracksters entries; the arrays per graph use only
     // the first nGraphs <= nTracksters entries).
     struct Scratch {
+      // the selected tracksters grouped by eta bin: bin b is binContent[binOffset[b] .. binOffset[b + 1])
+      int32_t* binContent;  // nTracksters entries
+      int32_t* binCount;    // per bin
+      int32_t* binOffset;   // per bin, + 1
+      int32_t* binCursor;   // per bin
+      int32_t* reachBits;   // the largest eta reach of a seed window, max(-lo, hi), as the bits of a float >= 0
       int32_t* isSeed;      // selected and et >= threshold
       int32_t* isFollower;  // selected and not a seed
       int32_t* parent;      // union-find over the seeds
@@ -145,9 +161,29 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }
 
-    // Python: deta = eta[t] - eta[seed]; lo < deta < hi and |dphi| < dphi_max
+    ALPAKA_FN_ACC inline int32_t etaBin(float eta) {
+      int32_t const b = static_cast<int32_t>((eta - kEtaBinMin) / kEtaBinWidth);
+      return b < 0 ? 0 : (b >= kNEtaBins ? kNEtaBins - 1 : b);
+    }
+
+    // The rows of binContent with the selected tracksters that can be in the window of a seed at eta, or that can
+    // see it from their own window: all the bins within the largest reach, plus one bin on each side as a margin for
+    // the rounding.
+    struct Candidates {
+      int32_t begin;
+      int32_t end;
+    };
+    ALPAKA_FN_ACC inline Candidates candidates(Scratch const& s, float eta) {
+      float const reach = std::bit_cast<float>(*s.reachBits);
+      int32_t const first = etaBin(eta - reach);
+      int32_t const last = etaBin(eta + reach);
+      return {s.binOffset[first > 0 ? first - 1 : 0], s.binOffset[last < kNEtaBins - 1 ? last + 2 : kNEtaBins]};
+    }
+
+    // Python: deta = (eta[t] - eta[seed]) * sign(eta[seed]); lo < deta < hi and |dphi| < dphi_max
     ALPAKA_FN_ACC inline bool inWindow(Scratch const& s, Inputs const& in, int32_t seed, int32_t t) {
-      float const deta = in.eta[t] - in.eta[seed];
+      // mirrored for negative eta: positive deta points to larger |eta|
+      float const deta = in.eta[seed] < 0.f ? in.eta[seed] - in.eta[t] : in.eta[t] - in.eta[seed];
       float const dphi = ::ticl::graph::absDeltaPhi(in.phi[t], in.phi[seed]);
       return deta > s.lo[seed] && deta < s.hi[seed] && dphi < s.dphiMax[seed];
     }
@@ -171,16 +207,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       int32_t degree;  // number of directed edges that leave this node in graph g
     };
 
-    // Membership and degree of the trackster t in the graph g.
-    // ponytail: O(n) per (graph, trackster), so O(nGraphs * n^2) per event; build neighbour lists per seed if the
-    // timing with pileup needs it.
+    // Membership and degree of the trackster t in the graph g. A seed counts its neighbours only among the candidates
+    // of its eta bins.
+    // ponytail: still called for every (graph, trackster) pair; build neighbour lists per seed if the timing with
+    // pileup needs it.
     ALPAKA_FN_ACC NodeInfo nodeInfo(Scratch const& s, Inputs const& in, int32_t g, int32_t t) {
       if (s.isSeed[t]) {
         if (s.seedGraph[t] != g)
           return {false, 0};
         int32_t degree = 0;
-        for (int32_t u = 0; u < in.n; ++u)
-          degree += isNeighbourOfSeed(s, in, g, t, u) ? 1 : 0;
+        auto const [begin, end] = candidates(s, in.eta[t]);
+        for (int32_t k = begin; k < end; ++k)
+          degree += isNeighbourOfSeed(s, in, g, t, s.binContent[k]) ? 1 : 0;
         return {true, degree};
       }
       if (!s.isFollower[t])
@@ -260,24 +298,55 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           s.isFollower[i] = sel && !seed;
           s.parent[i] = i;
           float lo = 0.f, hi = 0.f, dphiMax = 0.f;
-          if (seed)
+          if (seed) {
             ::ticl::graph::windowsForEta(params, in.eta[i], lo, hi, dphiMax);
+            // the bits of a float >= 0 are ordered as its value, so an integer atomicMax gives the largest reach
+            float const reach = std::max(std::max(-lo, hi), 0.f);
+            alpaka::atomicMax(acc, s.reachBits, std::bit_cast<int32_t>(reach), alpaka::hierarchy::Blocks{});
+          }
           s.lo[i] = lo;
           s.hi[i] = hi;
           s.dphiMax[i] = dphiMax;
+          if (sel)
+            alpaka::atomicAdd(acc, &s.binCount[etaBin(in.eta[i])], 1, alpaka::hierarchy::Blocks{});
         }
       }
     };
 
-    // seed-seed links -> union-find
+    // Single block: the offsets of the eta bins
+    struct KernelBinOffsets {
+      ALPAKA_FN_ACC void operator()(Acc1D const& acc, Scratch s) const {
+        auto& buf = alpaka::declareSharedVar<int32_t[kMaxBlockThreads], __COUNTER__>(acc);
+        int32_t const total = blockExclusiveScanArray(acc, s.binCount, s.binOffset, kNEtaBins, buf);
+        if (threadInBlock(acc) == 0)
+          s.binOffset[kNEtaBins] = total;
+      }
+    };
+
+    // the selected tracksters grouped by eta bin (in no particular order inside a bin)
+    struct KernelBinFill {
+      ALPAKA_FN_ACC void operator()(Acc1D const& acc, Inputs in, Scratch s) const {
+        for (int32_t i : uniform_elements(acc, in.n)) {
+          if (in.selected[i] == 0)
+            continue;
+          int32_t const b = etaBin(in.eta[i]);
+          s.binContent[s.binOffset[b] + alpaka::atomicAdd(acc, &s.binCursor[b], 1, alpaka::hierarchy::Blocks{})] = i;
+        }
+      }
+    };
+
+    // seed-seed links -> union-find; each pair (i, j > i) is tested once, among the candidates of i
     struct KernelLinkSeeds {
       ALPAKA_FN_ACC void operator()(Acc1D const& acc, Inputs in, Scratch s) const {
         for (int32_t i : uniform_elements(acc, in.n)) {
           if (!s.isSeed[i])
             continue;
-          for (int32_t j = i + 1; j < in.n; ++j)
-            if (s.isSeed[j] && seedsLinked(s, in, i, j))
+          auto const [begin, end] = candidates(s, in.eta[i]);
+          for (int32_t k = begin; k < end; ++k) {
+            int32_t const j = s.binContent[k];
+            if (j > i && s.isSeed[j] && seedsLinked(s, in, i, j))
               unite(acc, s.parent, i, j);
+          }
         }
       }
     };
@@ -466,9 +535,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     };
 
-    Scratch makeScratch(int32_t* ints, float* floats, Counters* counters, int32_t n) {
+    Scratch makeScratch(int32_t* ints, float* floats, int32_t* bins, Counters* counters, int32_t n) {
       Scratch s;
-      int32_t** intArrays[kNInts] = {&s.isSeed,
+      int32_t** intArrays[kNInts] = {&s.binContent,
+                                     &s.isSeed,
                                      &s.isFollower,
                                      &s.parent,
                                      &s.graphOfRoot,
@@ -485,6 +555,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       s.lo = floats;
       s.hi = floats + n;
       s.dphiMax = floats + 2 * static_cast<size_t>(n);
+      s.binCount = bins;
+      s.binOffset = bins + kNEtaBins;
+      s.binCursor = bins + 2 * kNEtaBins + 1;
+      s.reachBits = bins + 3 * kNEtaBins + 1;
       s.counters = counters;
       return s;
     }
@@ -532,17 +606,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     ints_.emplace(make_device_buffer<int32_t[]>(queue, kNInts * n));
     floats_.emplace(make_device_buffer<float[]>(queue, kNFloats * n));
+    bins_.emplace(make_device_buffer<int32_t[]>(queue, kNBinInts));
     deviceCounters_.emplace(make_device_buffer<Counters>(queue));
     alpaka::memset(queue, *ints_, 0x00);
+    alpaka::memset(queue, *bins_, 0x00);
     alpaka::memset(queue, *deviceCounters_, 0x00);
 
-    Scratch const s = makeScratch(ints_->data(), floats_->data(), deviceCounters_->data(), n);
+    Scratch const s = makeScratch(ints_->data(), floats_->data(), bins_->data(), deviceCounters_->data(), n);
 
     auto const elementwise = make_workdiv<Acc1D>(divide_up_by(n, kElementwiseThreads), kElementwiseThreads);
     auto const singleBlock = make_workdiv<Acc1D>(1, kSingleBlockThreads);
     auto const perGraph = make_workdiv<Acc1D>(std::min(n, kMaxGraphBlocks), kGraphBlockThreads);
 
     alpaka::exec<Acc1D>(queue, elementwise, KernelInit{}, inputs, params_, s);
+    alpaka::exec<Acc1D>(queue, singleBlock, KernelBinOffsets{}, s);
+    alpaka::exec<Acc1D>(queue, elementwise, KernelBinFill{}, inputs, s);
     alpaka::exec<Acc1D>(queue, elementwise, KernelLinkSeeds{}, inputs, s);
     alpaka::exec<Acc1D>(queue, singleBlock, KernelNumberGraphs{}, n, s);
     alpaka::exec<Acc1D>(queue, perGraph, KernelCountGraphs{}, inputs, s);
@@ -556,7 +634,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     if (nGraphs == 0)
       return;
     int32_t const n = inputs_.n;
-    Scratch const s = makeScratch(ints_->data(), floats_->data(), deviceCounters_->data(), n);
+    Scratch const s = makeScratch(ints_->data(), floats_->data(), bins_->data(), deviceCounters_->data(), n);
 
     alpaka::exec<Acc1D>(queue,
                         make_workdiv<Acc1D>(divide_up_by(nGraphs, kElementwiseThreads), kElementwiseThreads),

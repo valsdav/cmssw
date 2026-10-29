@@ -48,6 +48,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     std::optional<cms::alpakatools::device_buffer<Device, int32_t[]>> inputInts_;
     std::optional<cms::alpakatools::device_buffer<Device, int32_t[]>> ints_;
     std::optional<cms::alpakatools::device_buffer<Device, float[]>> floats_;
+    std::optional<cms::alpakatools::device_buffer<Device, int32_t[]>> bins_;
     std::optional<cms::alpakatools::device_buffer<Device, ::ticl::graph::Counters>> deviceCounters_;
     std::optional<cms::alpakatools::host_buffer<::ticl::graph::Counters>> hostCounters_;
   };
