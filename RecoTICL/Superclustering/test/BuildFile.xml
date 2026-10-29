@@ -1,0 +1,16 @@
+<bin name="testTracksterGraphAlgo" file="alpaka/testTracksterGraphAlgo.dev.cc">
+  <use name="alpaka"/>
+  <use name="DataFormats/TICL"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTICL/Superclustering"/>
+  <flags ALPAKA_BACKENDS="1"/>
+</bin>
+
+<library file="TracksterGraphValidator.cc" name="RecoTICLSuperclusteringTestPlugins">
+  <use name="DataFormats/TICL"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/MessageLogger"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <flags EDM_PLUGIN="1"/>
+</library>
