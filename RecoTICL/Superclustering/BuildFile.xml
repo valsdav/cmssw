@@ -1,5 +1,10 @@
 <use name="DataFormats/HGCalReco"/>
 <use name="FWCore/MessageLogger"/>
+<use name="alpaka"/>
+<use name="xtd"/>
+<use name="DataFormats/TICL"/>
+<use name="HeterogeneousCore/AlpakaInterface"/>
+<flags ALPAKA_BACKENDS="1"/>
 <export>
   <lib name="1"/>
 </export>
