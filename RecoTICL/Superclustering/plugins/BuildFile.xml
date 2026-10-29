@@ -17,6 +17,7 @@
 
 <library file="alpaka/*.cc" name="RecoTICLSuperclusteringPluginsPortable">
   <use name="DataFormats/CaloRecHit"/>
+  <use name="DataFormats/TICL"/>
   <use name="HeterogeneousCore/AlpakaCore"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
   <use name="alpaka"/>

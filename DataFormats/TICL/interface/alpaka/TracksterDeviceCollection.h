@@ -1,7 +1,7 @@
-#ifndef DataFormats_HGCalReco_interface_alpaka_TracksterDeviceCollection_h
-#define DataFormats_HGCalReco_interface_alpaka_TracksterDeviceCollection_h
+#ifndef DataFormats_TICL_interface_alpaka_TracksterDeviceCollection_h
+#define DataFormats_TICL_interface_alpaka_TracksterDeviceCollection_h
 
-#include "DataFormats/HGCalReco/interface/TracksterSoA.h"
+#include "DataFormats/TICL/interface/TracksterSoA.h"
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include <alpaka/alpaka.hpp>
 
@@ -12,4 +12,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::ticl {
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::ticl
 
-#endif  // DataFormats_HGCalReco_interface_alpaka_TracksterDeviceCollection_h
+#endif  // DataFormats_TICL_interface_alpaka_TracksterDeviceCollection_h

@@ -1,5 +1,5 @@
 // TracksterDeviceCollection.h includes Eigen, which must precede the other SoA headers
-#include "DataFormats/HGCalReco/interface/alpaka/TracksterDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/TracksterDeviceCollection.h"
 
 #include <optional>
 #include <utility>

@@ -1,5 +1,3 @@
-#include "DataFormats/HGCalReco/interface/TracksterSoA.h"
-#include "DataFormats/HGCalReco/interface/TracksterHostCollection.h"
 #include <vector>
 #include <array>
 #include "DataFormats/HGCalReco/interface/MtdSoA.h"

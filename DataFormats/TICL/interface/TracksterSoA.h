@@ -1,5 +1,5 @@
-#ifndef DataFormats_HGCalReco_interface_TracksterSoA_h
-#define DataFormats_HGCalReco_interface_TracksterSoA_h
+#ifndef DataFormats_TICL_interface_TracksterSoA_h
+#define DataFormats_TICL_interface_TracksterSoA_h
 
 #include <cstdint>
 #include <Eigen/Core>
@@ -56,7 +56,7 @@ namespace ticl {
                       SOA_BLOCK(pca, TracksterSoAPCA),
                       SOA_BLOCK(id, TracksterSoAId),
                       SOA_BLOCK(vertices, TracksterSoAVertices))
-                    
+
   using TracksterSoA = TracksterSoALayout<>;
   using TracksterSoAView = TracksterSoA::View;
   using TracksterSoAConstView = TracksterSoA::ConstView;
@@ -67,4 +67,4 @@ namespace ticl {
 
 }  // namespace ticl
 
-#endif  // DataFormats_HGCalReco_interface_TracksterSoA_h
+#endif  // DataFormats_TICL_interface_TracksterSoA_h

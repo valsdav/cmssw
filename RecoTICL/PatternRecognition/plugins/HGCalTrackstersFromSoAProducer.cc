@@ -1,5 +1,5 @@
 // TracksterHostCollection.h includes Eigen, which must precede the other SoA headers
-#include "DataFormats/HGCalReco/interface/TracksterHostCollection.h"
+#include "DataFormats/TICL/interface/TracksterHostCollection.h"
 
 #include <algorithm>
 #include <vector>
