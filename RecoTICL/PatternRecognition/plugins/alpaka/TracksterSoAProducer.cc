@@ -22,15 +22,15 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 #include "RecoLocalCalo/HGCalRecAlgos/interface/TICLGeomTools.h"
 
-#include "HGCalTrackstersSoAAlgoWrapper.h"
+#include "TracksterSoAAlgoWrapper.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   // Builds the tracksters (their layer clusters, energy, barycenter, time and principal components) from the layer
   // clusters and their clustering (the trackster of each layer cluster)
-  class HGCalSoATrackstersProducer : public stream::SynchronizingEDProducer<> {
+  class TracksterSoAProducer : public stream::SynchronizingEDProducer<> {
   public:
-    HGCalSoATrackstersProducer(const edm::ParameterSet& config)
+    TracksterSoAProducer(const edm::ParameterSet& config)
         : SynchronizingEDProducer(config),
           layerClustersToken_{consumes(config.getParameter<edm::InputTag>("hgcalLayerClustersSoA"))},
           layerClustersClusteringToken_{
@@ -40,7 +40,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           ticlGeomLookupToken_{consumesCollector().esConsumes<TICLGeomLookupHost, CaloGeometryRecord>()},
           ticlGeomLayersToken_{consumesCollector().esConsumes<TICLGeomLayersHost, CaloGeometryRecord>()},
           isBarrel_{config.getParameter<bool>("isBarrel")} {}
-
 
     // The numbers of tracksters and of their layer clusters are on the device, and the host needs them to allocate
     // the tracksters
@@ -59,11 +58,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     void produce(device::Event& iEvent, const device::EventSetup& iSetup) override {
-      // The layer clusters up to the last CE-E layer count to the electromagnetic energy
-      ticlgeom::Tools geometry;
-      geometry.setGeometry(
-          iSetup.getData(ticlGeomToken_), iSetup.getData(ticlGeomLookupToken_), iSetup.getData(ticlGeomLayersToken_));
-      const float zLimitEm = geometry.getPositionLayer(geometry.lastLayerEE()).z();
+      // In HGCAL, the layer clusters up to the last CE-E layer count to the electromagnetic energy. In the barrel, the
+      // kernel uses the ECAL layer clusters instead.
+      float zLimitEm = 0.f;
+      if (not isBarrel_) {
+        ticlgeom::Tools geometry;
+        geometry.setGeometry(
+            iSetup.getData(ticlGeomToken_), iSetup.getData(ticlGeomLookupToken_), iSetup.getData(ticlGeomLayersToken_));
+        zLimitEm = geometry.getPositionLayer(geometry.lastLayerEE()).z();
+      }
 
       const unsigned int nTracksters = (*counts_)[0];
       ticl::TracksterDeviceCollection tracksters(
@@ -81,6 +84,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       edm::ParameterSetDescription desc;
       desc.add<edm::InputTag>("hgcalLayerClustersSoA", edm::InputTag("hgcalSoAMergeLayerClusters"));
       desc.add<edm::InputTag>("hgcalLayerClustersTrackstersSoA", edm::InputTag("ticlCLUEstering"));
+      desc.add<bool>("isBarrel", false)
+          ->setComment("Barrel tracksters: the ECAL layer clusters (layer 0) count to the electromagnetic energy");
       descriptions.addWithDefaultLabel(desc);
     }
 
@@ -91,7 +96,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     const edm::ESGetToken<TICLGeomHost, CaloGeometryRecord> ticlGeomToken_;
     const edm::ESGetToken<TICLGeomLookupHost, CaloGeometryRecord> ticlGeomLookupToken_;
     const edm::ESGetToken<TICLGeomLayersHost, CaloGeometryRecord> ticlGeomLayersToken_;
-    const HGCalTrackstersSoAAlgoWrapper algo_{};
+    const TracksterSoAAlgoWrapper algo_{};
     const bool isBarrel_;
     // The numbers of tracksters and of their layer clusters, copied from the device in acquire and used in produce.
     // Pinned, so that the copies do not block acquire.
@@ -101,4 +106,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 #include "HeterogeneousCore/AlpakaCore/interface/alpaka/MakerMacros.h"
-DEFINE_FWK_ALPAKA_MODULE(HGCalSoATrackstersProducer);
+DEFINE_FWK_ALPAKA_MODULE(TracksterSoAProducer);

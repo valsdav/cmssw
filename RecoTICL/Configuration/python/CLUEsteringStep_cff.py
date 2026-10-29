@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 from RecoTICL.PatternRecognition.hgCalCLUEsteringTrackstersProducer_cfi import hgCalCLUEsteringTrackstersProducer as _hgCalCLUEsteringTrackstersProducer
-from RecoTICL.PatternRecognition.hgCalSoATrackstersProducer_cfi import hgCalSoATrackstersProducer as _hgCalSoATrackstersProducer
+from RecoTICL.PatternRecognition.tracksterSoAProducer_cfi import tracksterSoAProducer as _tracksterSoAProducer
 from RecoTICL.PatternRecognition.hgCalTrackstersFromSoAProducer_cfi import hgCalTrackstersFromSoAProducer as _hgCalTrackstersFromSoAProducer
 
 # The layer clusters of all the HGCAL components, merged on the device by hgcalSoAMergeLayerClusters, are clustered
@@ -11,7 +11,7 @@ ticlCLUEstering = _hgCalCLUEsteringTrackstersProducer.clone(
     hgcalLayerClustersSoA = 'hgcalSoAMergeLayerClusters'
 )
 
-ticlSoATracksters = _hgCalSoATrackstersProducer.clone(
+ticlSoATracksters = _tracksterSoAProducer.clone(
     hgcalLayerClustersSoA = 'hgcalSoAMergeLayerClusters',
     hgcalLayerClustersTrackstersSoA = 'ticlCLUEstering'
 )

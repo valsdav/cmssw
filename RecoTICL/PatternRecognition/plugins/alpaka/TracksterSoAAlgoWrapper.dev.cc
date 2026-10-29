@@ -13,7 +13,7 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/prefixScan.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
-#include "HGCalTrackstersSoAAlgoWrapper.h"
+#include "TracksterSoAAlgoWrapper.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
@@ -127,7 +127,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_FN_ACC void operator()(const Acc1D& acc,
                                     float zLimitEm,
                                     reco::CaloClusterDeviceCollection::ConstView layerClusters,
-                                    ticl::TracksterDeviceCollection::View tracksters, bool isBarrel) const {
+                                    ticl::TracksterDeviceCollection::View tracksters,
+                                    bool isBarrel) const {
         constexpr auto block = alpaka::hierarchy::Threads{};
         auto& s = alpaka::declareSharedVar<TracksterSums, __COUNTER__>(acc);
         auto vertices = tracksters.vertices();
@@ -147,12 +148,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             const auto position = layerClusters.position()[i];
             const float energy = layerClusters.energy()[i].energy();
             alpaka::atomicAdd(acc, &s.energy, energy, block);
-            if (isBarrel) {
-              if (position.layer() == 0) {
-                alpaka::atomicAdd(acc, &s.emEnergy, energy, block);
-              }
-            }
-            else if (std::abs(position.z()) <= zLimitEm) {
+            if (isBarrel ? position.layer() == 0 : std::abs(position.z()) <= zLimitEm) {
               alpaka::atomicAdd(acc, &s.emEnergy, energy, block);
             }
             alpaka::atomicAdd(acc, &s.position[0], energy * position.x(), block);
@@ -327,11 +323,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   }  // namespace
 
-  void HGCalTrackstersSoAAlgoWrapper::run(Queue& queue,
-                                          float zLimitEm,
-                                          reco::CaloClusterDeviceCollection::ConstView layerClusters,
-                                          HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
-                                          ticl::TracksterDeviceCollection::View tracksters, bool isBarrel) const {
+  void TracksterSoAAlgoWrapper::run(Queue& queue,
+                                    float zLimitEm,
+                                    reco::CaloClusterDeviceCollection::ConstView layerClusters,
+                                    HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
+                                    ticl::TracksterDeviceCollection::View tracksters,
+                                    bool isBarrel) const {
     // the layer clusters of the first trackster start at 0, also when there is no trackster
     uint32_t* offsets = tracksters.vertices().offsets().keys_offsets().data();
     auto firstOffset = make_device_view(queue, offsets, 1);
@@ -362,7 +359,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // One warp per trackster: most tracksters have a few layer clusters, the largest a few hundred
     const auto threadsPerTrackster = static_cast<uint32_t>(alpaka::getPreferredWarpSize(alpaka::getDev(queue)));
     const auto workDivTracksters = make_workdiv<Acc1D>(nTracksters, threadsPerTrackster);
-    alpaka::exec<Acc1D>(queue, workDivTracksters, KernelTracksterProperties{}, zLimitEm, layerClusters, tracksters, isBarrel);
+    alpaka::exec<Acc1D>(
+        queue, workDivTracksters, KernelTracksterProperties{}, zLimitEm, layerClusters, tracksters, isBarrel);
   }
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
