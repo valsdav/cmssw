@@ -33,9 +33,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<edm::InputTag>("src", edm::InputTag("ticlSoATracksters"))
-          ->setComment("Device SoA tracksters; configure the barrel trackster product explicitly.");
-      desc.add<edm::InputTag>("layerClusters", edm::InputTag("hgcalSoAMergeLayerClusters"))
+      desc.add<edm::InputTag>("src", edm::InputTag("ticlTrackstersSoACLUE3DBarrel"))
+          ->setComment("Device SoA barrel tracksters.");
+      desc.add<edm::InputTag>("layerClusters", edm::InputTag("ticlLayerClustersSoA"))
           ->setComment("Merged device layer-cluster SoA, in the order indexed by src.vertices().");
       descriptions.addWithDefaultLabel(desc);
     }
