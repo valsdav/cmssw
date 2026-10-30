@@ -59,6 +59,7 @@ private:
 
   float superclusterEtThreshold_;
   bool enableRegression_;
+  reco::CaloID caloID_;  // detector of the CaloClusters: ECAL barrel or HGCAL endcap
 };
 
 EGammaSuperclusterProducer::EGammaSuperclusterProducer(const edm::ParameterSet& ps, const ONNXRuntime*)
@@ -70,7 +71,8 @@ EGammaSuperclusterProducer::EGammaSuperclusterProducer(const edm::ParameterSet& 
       ticlTrackstersEMToken_(consumes<ticl::TracksterCollection>(ps.getParameter<edm::InputTag>("ticlTrackstersEM"))),
       layerClustersToken_(consumes<reco::CaloClusterCollection>(ps.getParameter<edm::InputTag>("layerClusters"))),
       superclusterEtThreshold_(ps.getParameter<float>("superclusterEtThreshold")),
-      enableRegression_(ps.getParameter<bool>("enableRegression")) {
+      enableRegression_(ps.getParameter<bool>("enableRegression")),
+      caloID_(ps.getParameter<bool>("isBarrel") ? reco::CaloID::DET_ECAL_BARREL : reco::CaloID::DET_HGCAL_ENDCAP) {
   if (enableRegression_) {
     onnxInputs_.resize(1);
     // rank-2: [batch, features]
@@ -110,7 +112,7 @@ void EGammaSuperclusterProducer::produce(edm::Event& iEvent, const edm::EventSet
     reco::CaloCluster& caloCluster = caloClustersEM->emplace_back(
         emTrackster.raw_energy(),                  // energy
         math::XYZPoint(emTrackster.barycenter()),  // position
-        reco::CaloID(reco::CaloID::DET_HGCAL_ENDCAP),
+        caloID_,
         hitsAndFractions,
         reco::CaloCluster::particleFlow,  // algoID (copying from output of PFECALCSuperClusterProducer)
         hitsAndFractions.at(0)
@@ -246,6 +248,8 @@ void EGammaSuperclusterProducer::fillDescriptions(edm::ConfigurationDescriptions
       ->setComment("The layer cluster collection that goes with ticlTrackstersEM");
   desc.add<float>("superclusterEtThreshold", 4.)->setComment("Minimum supercluster transverse energy.");
   desc.add<bool>("enableRegression", true)->setComment("Enable supercluster energy regression");
+  desc.add<bool>("isBarrel", false)
+      ->setComment("Barrel tracksters: the CaloClusters are in the ECAL barrel (else in the HGCAL endcap)");
   desc.add<edm::FileInPath>("regressionModelPath",
                             edm::FileInPath("RecoHGCal/TICL/data/superclustering/regression_v1.onnx"))
       ->setComment("Path to regression network (as ONNX model)");
