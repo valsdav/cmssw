@@ -1,5 +1,6 @@
 // TracksterHostCollection.h includes Eigen, which must precede the other SoA headers
 #include "DataFormats/TICL/interface/TracksterHostCollection.h"
+#include "DataFormats/TICL/interface/TracksterGroupHostCollection.h"
 
 #include <algorithm>
 #include <vector>
@@ -19,13 +20,22 @@
 // Converts the tracksters built on the device to ticl::Trackster, in the same order, and masks their layer clusters
 // in a copy of the original layer cluster mask, as TrackstersProducer does. The layer clusters of the tracksters are
 // indices in the merged layer clusters, which index the same layer clusters as hgcalMergeLayerClusters.
+// If the tracksters are groups of other tracksters (for example the superclusters, one trackster per group), the
+// optional groups input gives the indices of the grouped tracksters: they are written as
+// linkedTracksterIdToInputTracksterId, as TracksterLinksProducer does, for EGammaSuperclusterProducer.
 class TracksterSoAToLegacyConverter : public edm::global::EDProducer<> {
 public:
   TracksterSoAToLegacyConverter(const edm::ParameterSet& config)
       : tracksterSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
         originalMaskToken_(consumes(config.getParameter<edm::InputTag>("originalMask"))),
         trackstersToken_(produces<std::vector<ticl::Trackster>>()),
-        maskToken_(produces<std::vector<float>>()) {}
+        maskToken_(produces<std::vector<float>>()) {
+    const auto groups = config.getParameter<edm::InputTag>("groups");
+    if (not groups.label().empty()) {
+      groupsToken_ = consumes(groups);
+      linksToken_ = produces<std::vector<std::vector<unsigned int>>>("linkedTracksterIdToInputTracksterId");
+    }
+  }
 
   void produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup&) const override {
     const auto tracksterSoA = iEvent.get(tracksterSoAToken_).const_view();
@@ -73,6 +83,21 @@ public:
       // The iteration index keeps its default value, which TrackstersProducer also gives the iterations it does not name
     }
 
+    if (not groupsToken_.isUninitialized()) {
+      const auto groups = iEvent.get(groupsToken_).const_view();
+      if (static_cast<std::size_t>(groups.keys()) != tracksters.size()) {
+        throw edm::Exception(edm::errors::LogicError)
+            << "TracksterSoAToLegacyConverter: " << groups.keys() << " groups for " << tracksters.size()
+            << " tracksters. There must be one trackster per group.";
+      }
+      std::vector<std::vector<unsigned int>> links(groups.keys());
+      for (unsigned int g = 0; g < links.size(); ++g) {
+        const auto members = groups[g];
+        links[g].assign(members.begin(), members.end());
+      }
+      iEvent.emplace(linksToken_, std::move(links));
+    }
+
     iEvent.emplace(trackstersToken_, std::move(tracksters));
     iEvent.emplace(maskToken_, std::move(mask));
   }
@@ -82,6 +107,9 @@ public:
     desc.add<edm::InputTag>("src", edm::InputTag("ticlSoATracksters"));
     desc.add<edm::InputTag>("originalMask", edm::InputTag("hgcalMergeLayerClusters", "InitialLayerClustersMask"))
         ->setComment("The mask of the layer clusters before the tracksters: theirs are set to 0 in the output mask.");
+    desc.add<edm::InputTag>("groups", edm::InputTag())
+        ->setComment("Optional: the trackster groups of which the tracksters are made, one trackster per group. If set, "
+                     "their indices are written as linkedTracksterIdToInputTracksterId.");
     descriptions.addWithDefaultLabel(desc);
   }
 
@@ -90,6 +118,8 @@ private:
   const edm::EDGetTokenT<std::vector<float>> originalMaskToken_;
   const edm::EDPutTokenT<std::vector<ticl::Trackster>> trackstersToken_;
   const edm::EDPutTokenT<std::vector<float>> maskToken_;
+  edm::EDGetTokenT<ticl::TracksterGroupHostCollection> groupsToken_;
+  edm::EDPutTokenT<std::vector<std::vector<unsigned int>>> linksToken_;
 };
 
 DEFINE_FWK_MODULE(TracksterSoAToLegacyConverter);
