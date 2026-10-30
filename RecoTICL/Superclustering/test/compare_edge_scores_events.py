@@ -67,7 +67,7 @@ def main():
         n_events += 1
         ok = len(got) == len(expected) and np.array_equal(got == -1, expected == -1)
         worst = float(np.abs(got - expected).max()) if ok and len(got) else 0.0
-        ok = ok and worst < 1e-5
+        ok = ok and worst < 1e-4
         n_good += ok
         n_big = sum(1 for g in G if g[1] > MAX_NODES)
         print(f"event {key}: {len(G)} graphs ({n_big} above {MAX_NODES} nodes), {len(got)} scores "

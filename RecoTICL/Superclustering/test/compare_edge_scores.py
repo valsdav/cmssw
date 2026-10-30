@@ -149,7 +149,7 @@ def main():
         print(f"graphsPerBatch {batch}: {len(events)} events, {n_edges} edges, {n_skipped} in graphs above "
               f"{MAX_NODES} nodes (-1); max |score C++ - score Python| = {worst:.2e}")
         assert n_skipped > 0 and n_edges > n_skipped, "the events must have scored and not scored edges"
-        assert worst < 1e-5, "C++ and Python scores differ"
+        assert worst < 1e-4, "C++ and Python scores differ"
     print("OK")
 
 

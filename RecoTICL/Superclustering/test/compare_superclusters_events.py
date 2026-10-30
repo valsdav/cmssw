@@ -10,7 +10,7 @@ Inputs:
 For each event:
   - the groups of resolve_groups() (compare_graph_superclusters.py) = linkedTracksterIdToInputTracksterId;
   - each supercluster trackster has the layer clusters of its tracksters, and their raw energy;
-  - the SuperClusters are the supercluster tracksters with raw_pt >= superclusterEtThreshold, with the same members.
+  - the number of SuperClusters is the number of supercluster tracksters with raw_pt >= superclusterEtThreshold.
 
 Usage: python3 compare_superclusters_events.py barrelSoA.root job.log [direct|transitive]
 """
@@ -33,7 +33,7 @@ def main():
     hS = Handle("ticl::TracksterGraphEdgeScoresHostCollection")
     hSC = Handle("std::vector<ticl::io_v1::Trackster>")
     hL = Handle("std::vector<std::vector<unsigned int>>")
-    hEG = Handle("std::vector<reco::SuperCluster>")
+    hEG = Handle("std::vector<reco::io_v1::SuperCluster>")
     n_events = n_good = n_groups = n_multi = n_superclusters = 0
     for ev in Events(sys.argv[1]):
         aux = ev.eventAuxiliary()
@@ -77,11 +77,8 @@ def main():
         if hEG.product().size() != len(passing):
             problems.append(f"{hEG.product().size()} SuperClusters, {len(passing)} supercluster tracksters above "
                             f"{SUPERCLUSTER_ET_THRESHOLD} GeV")
-        else:
-            for s, g in zip(hEG.product(), passing):
-                if s.clustersSize() != len(links[g]):
-                    problems.append(f"group {g}: {s.clustersSize()} clusters in the SuperCluster, {len(links[g])} "
-                                    "tracksters")
+        # only the number: a call of a reco::SuperCluster method makes cling parse the DataFormats/CaloRecHit dictionary
+        # payload, which it cannot do (the SoA macros of CaloClusterSoA.h), and python crashes
 
         n_events += 1
         n_good += not problems
