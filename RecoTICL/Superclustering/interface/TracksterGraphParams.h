@@ -1,10 +1,13 @@
 #ifndef RecoTICL_Superclustering_interface_TracksterGraphParams_h
 #define RecoTICL_Superclustering_interface_TracksterGraphParams_h
 
-// The configuration, the inputs and the totals of the trackster graph building (TracksterGraphAlgo).
+// The configuration, the inputs and the totals of the trackster graph building (TracksterGraphAlgo) and of the
+// superclustering on the graphs (TracksterGroupAlgo).
 // Backend independent, usable on the host and on the device.
 
 #include <cstdint>
+
+#include <xtd/xtd.h>
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
@@ -42,6 +45,42 @@ namespace ticl::graph {
     int32_t nNodes;
     int32_t nEdges;
   };
+
+  // The configuration and the totals of the superclustering on the graphs (TracksterGroupAlgo)
+  struct GroupParams {
+    // A graph node with et >= seedEtThreshold can be a group seed. It must not be lower than the seed threshold of the
+    // graph building: then each such node is a seed of exactly one graph.
+    float seedEtThreshold;
+    float linkingThreshold;  // a link is taken if its probability is > linkingThreshold
+    // false: only the group seed takes its neighbours; true: also each seed that the group takes (never a follower)
+    bool transitive;
+  };
+
+  struct GroupCounters {
+    int32_t nSeeds;
+    int32_t nGroups;
+    int32_t nMembers;
+  };
+
+  // eta, phi and transverse energy of a trackster, from its barycenter
+  struct BarycenterKinematics {
+    float eta;
+    float phi;
+    float et;
+    float rho;  // transverse distance of the barycenter from the beam line
+  };
+
+  // eta = asinh(z / rho), as Trackster::barycenter().eta(), and et = rawEnergy / cosh(eta) = rawEnergy * rho / r, as
+  // the CPU raw_pt. The two forms of eta never subtract two nearly equal numbers. The graph building, the graph edge
+  // model and the superclustering use this function, so that they agree.
+  ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE BarycenterKinematics barycenterKinematics(float x, float y, float z, float rawEnergy) {
+    float const rho = xtd::sqrt(x * x + y * y);
+    float const r = xtd::sqrt(rho * rho + z * z);
+    return {rho > 0.f ? (z >= 0.f ? xtd::log((z + r) / rho) : -xtd::log((r - z) / rho)) : 0.f,
+            xtd::atan2(y, x),
+            r > 0.f ? rawEnergy * rho / r : 0.f,
+            rho};
+  }
 
   // sum_k c[k] * x^k, with the Horner method
   ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE float polynomial(float const* c, int32_t n, float x) {

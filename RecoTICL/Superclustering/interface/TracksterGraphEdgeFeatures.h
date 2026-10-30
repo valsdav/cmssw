@@ -13,6 +13,7 @@
 #include "DataFormats/TICL/interface/TracksterSoA.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "RecoTICL/Superclustering/interface/TracksterGraphEdgeModelSoA.h"
+#include "RecoTICL/Superclustering/interface/TracksterGraphParams.h"
 
 namespace ticl::graphmodel {
 
@@ -25,22 +26,18 @@ namespace ticl::graphmodel {
                                                   float (&f)[kNodeFeatures]) {
     constexpr float kPi = 3.14159265358979323846f;
     auto const barycenter = tracksters.barycenter()[t];
-    float const x = barycenter.x();
-    float const y = barycenter.y();
-    float const z = barycenter.z();
-    float const rho = xtd::sqrt(x * x + y * y);
-    float const r = xtd::sqrt(rho * rho + z * z);
     auto const p = properties[t];
     // A barrel trackster has one ECAL layer cluster: the EM energy is its energy, the rest is the HCAL energy
     float const rawEnergy = tracksters.energy()[t].rawEnergy();
     float const ecalEnergy = tracksters.energy()[t].rawEmEnergy();
     float const hcalEnergy = rawEnergy - ecalEnergy;
+    auto const k = ::ticl::graph::barycenterKinematics(barycenter.x(), barycenter.y(), barycenter.z(), rawEnergy);
 
     f[0] = ecalEnergy;                                                         // ecal_energy
-    f[1] = r > 0.f ? rawEnergy * rho / r : 0.f;                                // et = rawEnergy / cosh(eta)
-    f[2] = rho > 0.f ? (z >= 0.f ? xtd::log((z + r) / rho) : -xtd::log((r - z) / rho)) : 0.f;  // eta
-    f[3] = rho > 0.f ? y / rho : 0.f;                                          // sin_phi
-    f[4] = rho > 0.f ? x / rho : 1.f;                                          // cos_phi
+    f[1] = k.et;                                                               // et = rawEnergy / cosh(eta)
+    f[2] = k.eta;                                                              // eta
+    f[3] = k.rho > 0.f ? barycenter.y() / k.rho : 0.f;                         // sin_phi
+    f[4] = k.rho > 0.f ? barycenter.x() / k.rho : 1.f;                         // cos_phi
     f[5] = p.nHcalClusters();                                                  // n_hcal
     f[6] = hcalEnergy;                                                         // hcal_energy
     // deta_ecal_hcal, dphi_ecal_hcal, dz_ecal_hcal: HCAL barycenter - ECAL cluster. The training gives the

@@ -17,7 +17,6 @@
 #include <bit>
 
 #include <alpaka/alpaka.hpp>
-#include <xtd/xtd.h>
 
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
@@ -270,15 +269,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     int32_t* selected) const {
         for (int32_t i : uniform_elements(acc, n)) {
           auto const barycenter = tracksters.barycenter()[i];
-          float const x = barycenter.x();
-          float const y = barycenter.y();
-          float const z = barycenter.z();
-          float const rho = xtd::sqrt(x * x + y * y);
-          // eta = asinh(z / rho), as Trackster::barycenter().eta(); et = rawEnergy / cosh(eta) = rawEnergy * rho / r
-          float const r = xtd::sqrt(rho * rho + z * z);
-          eta[i] = rho > 0.f ? (z >= 0.f ? xtd::log((z + r) / rho) : -xtd::log((r - z) / rho)) : 0.f;
-          phi[i] = xtd::atan2(y, x);
-          et[i] = r > 0.f ? tracksters.energy()[i].rawEnergy() * rho / r : 0.f;
+          auto const k = ::ticl::graph::barycenterKinematics(
+              barycenter.x(), barycenter.y(), barycenter.z(), tracksters.energy()[i].rawEnergy());
+          eta[i] = k.eta;
+          phi[i] = k.phi;
+          et[i] = k.et;
           selected[i] = properties[i].nEcalClusters() >= 1;
         }
       }
