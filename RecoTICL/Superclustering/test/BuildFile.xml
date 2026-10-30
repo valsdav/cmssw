@@ -6,6 +6,15 @@
   <flags ALPAKA_BACKENDS="1"/>
 </bin>
 
+<bin name="testTracksterGroupAlgo" file="alpaka/testTracksterGroupAlgo.dev.cc">
+  <use name="alpaka"/>
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/TICL"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="RecoTICL/Superclustering"/>
+  <flags ALPAKA_BACKENDS="serial"/>
+</bin>
+
 <bin name="testTracksterGraphEdgeScore" file="alpaka/testTracksterGraphEdgeScore.dev.cc">
   <use name="alpaka"/>
   <use name="pytorch"/>

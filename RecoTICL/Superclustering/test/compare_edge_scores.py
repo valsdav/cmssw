@@ -16,22 +16,12 @@ import sys
 import numpy as np
 import torch
 
-from compare_graph_builder import F, build_graphs
+from compare_graph_builder import F, build_graphs, eta_phi_et
 
 MAX_NODES = 50  # = kMaxNodes in TracksterGraphEdgeModelSoA.h
 PLACEHOLDER = F(-1.0)
 PROPERTY_COLUMNS = ["nEcal", "nHcal", "ecalX", "ecalY", "ecalZ", "ecalEta", "ecalPhi",
                     "hcalX", "hcalY", "hcalZ", "hcalEta", "hcalPhi"]
-
-
-def eta_phi_et(raw_energy, x, y, z):
-    """eta, phi and et of the barycenter, with the float operations of fillNodeFeatures / prepareInputs"""
-    rho = np.sqrt(x * x + y * y).astype(F)
-    r = np.sqrt(rho * rho + z * z).astype(F)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        eta = np.where(rho > 0, np.where(z >= 0, np.log((z + r) / rho), -np.log((r - z) / rho)), F(0)).astype(F)
-        et = np.where(r > 0, raw_energy * rho / r, F(0)).astype(F)
-    return eta, np.arctan2(y, x).astype(F), et, rho
 
 
 def node_features(ev):

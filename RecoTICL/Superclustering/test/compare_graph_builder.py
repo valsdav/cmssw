@@ -21,6 +21,16 @@ DETA_HIGH = [0.08, 0.0, 0.1 / (1.48 * 1.48)]
 DPHI_MAX = [1.20, 0.25 / 1.5]
 
 
+def eta_phi_et(raw_energy, x, y, z):
+    """eta, phi, et and rho of the barycenter, with the float operations of ticl::graph::barycenterKinematics"""
+    rho = np.sqrt(x * x + y * y).astype(F)
+    r = np.sqrt(rho * rho + z * z).astype(F)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        eta = np.where(rho > 0, np.where(z >= 0, np.log((z + r) / rho), -np.log((r - z) / rho)), F(0)).astype(F)
+        et = np.where(r > 0, raw_energy * rho / r, F(0)).astype(F)
+    return eta, np.arctan2(y, x).astype(F), et, rho
+
+
 def polynomial(coefficients, x):
     """sum_k c[k] x^k with the Horner method in float32, as TracksterGraphParams.h"""
     c = [F(v) for v in coefficients]
