@@ -6,6 +6,18 @@
   <flags ALPAKA_BACKENDS="1"/>
 </bin>
 
+<bin name="testTracksterGraphEdgeScore" file="alpaka/testTracksterGraphEdgeScore.dev.cc">
+  <use name="alpaka"/>
+  <use name="pytorch"/>
+  <use name="DataFormats/Portable"/>
+  <use name="DataFormats/TICL"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="PhysicsTools/PyTorch"/>
+  <use name="PhysicsTools/PyTorchAlpaka"/>
+  <use name="RecoTICL/Superclustering"/>
+  <flags ALPAKA_BACKENDS="serial"/>
+</bin>
+
 <library file="TracksterGraphValidator.cc" name="RecoTICLSuperclusteringTestPlugins">
   <use name="DataFormats/TICL"/>
   <use name="FWCore/Framework"/>

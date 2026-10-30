@@ -20,9 +20,9 @@ from DataFormats.FWLite import Events, Handle
 from compare_graph_builder import F, build_graphs
 
 
-def read_job_graphs(path):
-    """{(run, lumi, event): {graph: (nodes, sorted edges)}} from the TracksterGraphValidator dump"""
-    graphs = {}
+def read_job_blocks(path):
+    """{(run, lumi, event): (G rows, N rows, E rows)} from the TracksterGraphValidator dump, in the row order"""
+    blocks = {}
     lines = open(path).read().split("\n")
     i = 0
     while i < len(lines):
@@ -33,13 +33,18 @@ def read_job_graphs(path):
         key = tuple(int(x) for x in m.groups())
         nG, nN, nE = map(int, lines[i + 1].split()[1:])
         rows = lines[i + 2:i + 2 + nG + nN + nE]
-        G = [list(map(int, r.split()[1:])) for r in rows[:nG]]
-        N = [list(map(int, r.split()[1:])) for r in rows[nG:nG + nN]]
-        E = [list(map(int, r.split()[1:])) for r in rows[nG + nN:]]
-        graphs[key] = {g: ({t for t, _ in N[no:no + nn]}, sorted((e[0], e[1]) for e in E[eo:eo + ne]))
-                       for g, (no, nn, eo, ne) in enumerate(G)}
+        blocks[key] = ([list(map(int, r.split()[1:])) for r in rows[:nG]],
+                       [list(map(int, r.split()[1:])) for r in rows[nG:nG + nN]],
+                       [list(map(int, r.split()[1:])) for r in rows[nG + nN:]])
         i += 2 + nG + nN + nE
-    return graphs
+    return blocks
+
+
+def read_job_graphs(path):
+    """{(run, lumi, event): {graph: (nodes, sorted edges)}} from the TracksterGraphValidator dump"""
+    return {key: {g: ({t for t, _ in N[no:no + nn]}, sorted((e[0], e[1]) for e in E[eo:eo + ne]))
+                  for g, (no, nn, eo, ne) in enumerate(G)}
+            for key, (G, N, E) in read_job_blocks(path).items()}
 
 
 def inputs_from_tracksters(tracksters, properties):
