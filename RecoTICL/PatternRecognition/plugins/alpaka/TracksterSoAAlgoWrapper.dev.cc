@@ -89,7 +89,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // Per layer cluster -> per trackster: the number of layer clusters
     struct KernelTracksterSizes {
       ALPAKA_FN_ACC void operator()(const Acc1D& acc,
-                                    HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
+                                    ticl::LayerClusterToTracksterDeviceCollection::ConstView layerClustersClustering,
                                     uint32_t* tracksterSizes) const {
         for (auto i : uniform_elements(acc, layerClustersClustering.metadata().size())) {
           const int trackster = layerClustersClustering[i].tracksterIndex();
@@ -104,7 +104,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // trackster. The sizes count down the layer clusters still to place, so that they fill the trackster from its start.
     struct KernelTracksterVertices {
       ALPAKA_FN_ACC void operator()(const Acc1D& acc,
-                                    HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
+                                    ticl::LayerClusterToTracksterDeviceCollection::ConstView layerClustersClustering,
                                     uint32_t* tracksterSizes,
                                     ticl::TracksterDeviceCollection::View tracksters) const {
         auto vertices = tracksters.vertices();
@@ -326,7 +326,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   void TracksterSoAAlgoWrapper::run(Queue& queue,
                                     float zLimitEm,
                                     reco::CaloClusterDeviceCollection::ConstView layerClusters,
-                                    HGCalSoALayerClustersExtraDeviceCollection::ConstView layerClustersClustering,
+                                    ticl::LayerClusterToTracksterDeviceCollection::ConstView layerClustersClustering,
                                     ticl::TracksterDeviceCollection::View tracksters,
                                     bool isBarrel) const {
     // the layer clusters of the first trackster start at 0, also when there is no trackster

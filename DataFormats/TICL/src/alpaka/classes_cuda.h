@@ -3,3 +3,4 @@
 #include "DataFormats/TICL/interface/alpaka/TracksterDeviceCollection.h"
 #include "DataFormats/TICL/interface/alpaka/TracksterGraphDeviceCollection.h"
 #include "DataFormats/TICL/interface/alpaka/TracksterGraphEdgeScoresDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/LayerClusterToTracksterDeviceCollection.h"

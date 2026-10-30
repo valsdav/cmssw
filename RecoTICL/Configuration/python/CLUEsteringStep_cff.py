@@ -12,8 +12,8 @@ ticlCLUEstering = _hgCalCLUEsteringTrackstersProducer.clone(
 )
 
 ticlSoATracksters = _tracksterSoAProducer.clone(
-    hgcalLayerClustersSoA = 'hgcalSoAMergeLayerClusters',
-    hgcalLayerClustersTrackstersSoA = 'ticlCLUEstering'
+    layerClusters = 'hgcalSoAMergeLayerClusters',
+    layerClusterToTrackster = 'ticlCLUEstering'
 )
 
 # Conversion to legacy tracksters

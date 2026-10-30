@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "DataFormats/CaloRecHit/interface/alpaka/CaloClusterDeviceCollection.h"
-#include "DataFormats/HGCalReco/interface/alpaka/HGCalSoALayerClustersExtraDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/LayerClusterToTracksterDeviceCollection.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
@@ -33,8 +33,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void produce(device::Event& iEvent, const device::EventSetup&) override {
       const auto layerClusters = iEvent.get(layerClustersToken_).const_view();
 
-      HGCalSoALayerClustersExtraDeviceCollection layerClustersClustering(iEvent.queue(),
-                                                                         layerClusters.position().metadata().size());
+      ticl::LayerClusterToTracksterDeviceCollection layerClustersClustering(iEvent.queue(),
+                                                                            layerClusters.position().metadata().size());
 
       algo_.run(iEvent.queue(), parameters_, layerClusters, layerClustersClustering.view());
       iEvent.emplace(layerClustersClusteringToken_, std::move(layerClustersClustering));
@@ -87,7 +87,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     const device::EDGetToken<reco::CaloClusterDeviceCollection> layerClustersToken_;
-    const device::EDPutToken<HGCalSoALayerClustersExtraDeviceCollection> layerClustersClusteringToken_;
+    const device::EDPutToken<ticl::LayerClusterToTracksterDeviceCollection> layerClustersClusteringToken_;
     const HGCalCLUEsteringTrackstersAlgoWrapper::Parameters parameters_;
     const HGCalCLUEsteringTrackstersAlgoWrapper algo_{};
   };

@@ -13,5 +13,3 @@
 #include "DataFormats/HGCalReco/interface/HGCalSoARecHitsExtraHostCollection.h"
 #include "DataFormats/HGCalReco/interface/HGCalSoAClusters.h"
 #include "DataFormats/HGCalReco/interface/HGCalSoAClustersHostCollection.h"
-#include "DataFormats/HGCalReco/interface/HGCalSoALayerClustersExtra.h"
-#include "DataFormats/HGCalReco/interface/HGCalSoALayerClustersExtraHostCollection.h"

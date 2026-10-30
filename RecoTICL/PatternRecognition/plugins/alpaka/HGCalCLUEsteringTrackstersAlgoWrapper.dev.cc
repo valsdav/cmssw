@@ -102,7 +102,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       ALPAKA_FN_ACC void operator()(const Acc1D& acc,
                                     uint32_t minSiliconCells,
                                     reco::CaloClusterDeviceCollection::ConstView layerClusters,
-                                    HGCalSoALayerClustersExtraDeviceCollection::View layerClustersClustering,
+                                    ticl::LayerClusterToTracksterDeviceCollection::View layerClustersClustering,
                                     uint32_t* isPoint,
                                     ComponentExtents* extents) const {
         if (once_per_grid(acc)) {
@@ -252,7 +252,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     uint32_t minLayerClusters,
                                     const uint32_t* clusterSizes,
                                     uint32_t* isTrackster,
-                                    HGCalSoALayerClustersExtraDeviceCollection::View layerClustersClustering) const {
+                                    ticl::LayerClusterToTracksterDeviceCollection::View layerClustersClustering) const {
         for (auto c : uniform_elements(acc, nClusters)) {
           const bool selected = clusterSizes[c] >= minLayerClusters;
           isTrackster[c] = selected;
@@ -273,7 +273,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                     PointsDeviceCollection::ConstView points,
                                     const uint32_t* isTrackster,
                                     const uint32_t* tracksterEnd,
-                                    HGCalSoALayerClustersExtraDeviceCollection::View layerClustersClustering) const {
+                                    ticl::LayerClusterToTracksterDeviceCollection::View layerClustersClustering) const {
         if (once_per_grid(acc)) {
           layerClustersClustering.numberOfTrackstersScalar() = tracksterEnd[nPoints - 1];
         }
@@ -296,7 +296,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       Queue& queue,
       const Parameters& parameters,
       reco::CaloClusterDeviceCollection::ConstView layerClusters,
-      HGCalSoALayerClustersExtraDeviceCollection::View layerClustersClustering) const {
+      ticl::LayerClusterToTracksterDeviceCollection::View layerClustersClustering) const {
 
     auto nTracksters = make_device_view<unsigned int>(queue, layerClustersClustering.numberOfTrackstersScalar());
     alpaka::memset(queue, nTracksters, 0x0);

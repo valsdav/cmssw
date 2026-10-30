@@ -52,7 +52,7 @@ ticlBarrelGraphEdgeScoreTask = cms.Task(ticlBarrelGraphEdgeScore)
 # are not produced yet: set the two inputs to them, and the inputs of ticlTracksterBarrelProperties to this module and
 # to the layer clusters.
 ticlSoATrackstersBarrel = _tracksterSoAProducer.clone(
-    hgcalLayerClustersSoA = 'barrelSoALayerClusters',
-    hgcalLayerClustersTrackstersSoA = 'ticlCLUEsteringBarrel',
+    layerClusters = 'barrelSoALayerClusters',
+    layerClusterToTrackster = 'ticlCLUEsteringBarrel',
     isBarrel = True
 )

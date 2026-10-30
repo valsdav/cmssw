@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "DataFormats/CaloRecHit/interface/alpaka/CaloClusterDeviceCollection.h"
-#include "DataFormats/HGCalReco/interface/alpaka/HGCalSoALayerClustersExtraDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/LayerClusterToTracksterDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -42,7 +42,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     void run(Queue& queue,
              const Parameters& parameters,
              reco::CaloClusterDeviceCollection::ConstView layerClusters,
-             HGCalSoALayerClustersExtraDeviceCollection::View layerClustersClustering) const;
+             ticl::LayerClusterToTracksterDeviceCollection::View layerClustersClustering) const;
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 

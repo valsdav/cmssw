@@ -32,4 +32,9 @@
   <class name="ticl::TracksterGraphEdgeScoresHostCollection::Layout"/>
   <class name="ticl::TracksterGraphEdgeScoresSoA::View"/>
   <class name="edm::Wrapper<ticl::TracksterGraphEdgeScoresHostCollection>" splitLevel="0"/>
+
+  <class name="ticl::LayerClusterToTracksterHostCollection" rntupleStreamerMode="true"/>
+  <class name="ticl::LayerClusterToTracksterHostCollection::Layout"/>
+  <class name="ticl::LayerClusterToTracksterSoA::View"/>
+  <class name="edm::Wrapper<ticl::LayerClusterToTracksterHostCollection>" splitLevel="0"/>
 </lcgdict>

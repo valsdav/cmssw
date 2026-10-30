@@ -8,7 +8,7 @@
 #include "CondFormats/HGCalObjects/interface/TICLGeomLayersHost.h"
 #include "CondFormats/HGCalObjects/interface/TICLGeomLookupHost.h"
 #include "DataFormats/CaloRecHit/interface/alpaka/CaloClusterDeviceCollection.h"
-#include "DataFormats/HGCalReco/interface/alpaka/HGCalSoALayerClustersExtraDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/LayerClusterToTracksterDeviceCollection.h"
 #include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -32,9 +32,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     TracksterSoAProducer(const edm::ParameterSet& config)
         : SynchronizingEDProducer(config),
-          layerClustersToken_{consumes(config.getParameter<edm::InputTag>("hgcalLayerClustersSoA"))},
+          layerClustersToken_{consumes(config.getParameter<edm::InputTag>("layerClusters"))},
           layerClustersClusteringToken_{
-              consumes(config.getParameter<edm::InputTag>("hgcalLayerClustersTrackstersSoA"))},
+              consumes(config.getParameter<edm::InputTag>("layerClusterToTrackster"))},
           trackstersToken_{produces()},
           ticlGeomToken_{consumesCollector().esConsumes<TICLGeomHost, CaloGeometryRecord>()},
           ticlGeomLookupToken_{consumesCollector().esConsumes<TICLGeomLookupHost, CaloGeometryRecord>()},
@@ -82,8 +82,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<edm::InputTag>("hgcalLayerClustersSoA", edm::InputTag("hgcalSoAMergeLayerClusters"));
-      desc.add<edm::InputTag>("hgcalLayerClustersTrackstersSoA", edm::InputTag("ticlCLUEstering"));
+      desc.add<edm::InputTag>("layerClusters", edm::InputTag("hgcalSoAMergeLayerClusters"));
+      desc.add<edm::InputTag>("layerClusterToTrackster", edm::InputTag("ticlCLUEstering"))
+          ->setComment("the trackster of each layer cluster");
       desc.add<bool>("isBarrel", false)
           ->setComment("Barrel tracksters: the ECAL layer clusters (layer 0) count to the electromagnetic energy");
       descriptions.addWithDefaultLabel(desc);
@@ -91,7 +92,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   private:
     const device::EDGetToken<reco::CaloClusterDeviceCollection> layerClustersToken_;
-    const device::EDGetToken<HGCalSoALayerClustersExtraDeviceCollection> layerClustersClusteringToken_;
+    const device::EDGetToken<ticl::LayerClusterToTracksterDeviceCollection> layerClustersClusteringToken_;
     const device::EDPutToken<ticl::TracksterDeviceCollection> trackstersToken_;
     const edm::ESGetToken<TICLGeomHost, CaloGeometryRecord> ticlGeomToken_;
     const edm::ESGetToken<TICLGeomLookupHost, CaloGeometryRecord> ticlGeomLookupToken_;
