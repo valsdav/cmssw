@@ -2,3 +2,4 @@
 #include "DataFormats/TICL/interface/TracksterSoA.h"
 #include "DataFormats/TICL/interface/TracksterHostCollection.h"
 #include "DataFormats/TICL/interface/TracksterGraphHostCollection.h"
+#include "DataFormats/TICL/interface/TracksterGraphEdgeScoreHostCollection.h"
