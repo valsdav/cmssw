@@ -86,13 +86,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     desc.add<edm::InputTag>("barrelProperties", edm::InputTag("ticlTracksterBarrelProperties"))
         ->setComment("only the tracksters with an ECAL layer cluster are nodes");
     desc.add<double>("seedEtThreshold", 1.0)->setComment("seed: et >= seedEtThreshold [GeV]");
-    // The windows are polynomials in |eta_seed|, coefficients from the constant term up. These values approximate
-    // the parametrisation used in the training (to be improved): dphi 1.20 -> 1.45, deta_hi 0.08 -> 0.18 at 1.48.
+    // The windows are polynomials in |eta_seed|, coefficients from the constant term up. The defaults are the windows
+    // of the training (ticl-egm-linking, configs/graph_builder/graph_builder_cff.py): deta_lo = -0.08,
+    // deta_hi = 0.08 + 0.1 / 1.479^2 * |eta|^2, dphi = (|eta| / 6 + 1.2) / 2.
     desc.add<std::vector<double>>("windowDEtaLow", {-0.08})
         ->setComment("lowest (eta - eta_seed) * sign(eta_seed), as a polynomial in |eta_seed|");
-    desc.add<std::vector<double>>("windowDEtaHigh", {0.08, 0., 0.1 / (1.48 * 1.48)})
+    desc.add<std::vector<double>>("windowDEtaHigh", {0.08, 0., 0.1 / (1.479 * 1.479)})
         ->setComment("highest (eta - eta_seed) * sign(eta_seed), as a polynomial in |eta_seed|");
-    desc.add<std::vector<double>>("windowDPhiMax", {1.20, 0.25 / 1.5})
+    desc.add<std::vector<double>>("windowDPhiMax", {0.6, 1. / 12.})
         ->setComment("largest |phi - phi_seed|, as a polynomial in |eta_seed|");
     descriptions.addWithDefaultLabel(desc);
   }

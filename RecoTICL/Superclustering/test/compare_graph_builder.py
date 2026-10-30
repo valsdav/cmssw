@@ -17,8 +17,8 @@ F = np.float32
 # ---- configuration: the defaults of TracksterGraphProducer -----------------------------------------------------
 SEED_ET = F(1.0)
 DETA_LOW = [-0.08]
-DETA_HIGH = [0.08, 0.0, 0.1 / (1.48 * 1.48)]
-DPHI_MAX = [1.20, 0.25 / 1.5]
+DETA_HIGH = [0.08, 0.0, 0.1 / (1.479 * 1.479)]
+DPHI_MAX = [0.6, 1.0 / 12.0]
 
 
 def eta_phi_et(raw_energy, x, y, z):
