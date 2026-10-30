@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 from RecoTICL.PatternRecognition.hgCalCLUEsteringTrackstersProducer_cfi import hgCalCLUEsteringTrackstersProducer as _hgCalCLUEsteringTrackstersProducer
 from RecoTICL.PatternRecognition.tracksterSoAProducer_cfi import tracksterSoAProducer as _tracksterSoAProducer
-from RecoTICL.PatternRecognition.hgCalTrackstersFromSoAProducer_cfi import hgCalTrackstersFromSoAProducer as _hgCalTrackstersFromSoAProducer
+from RecoTICL.PatternRecognition.tracksterSoAToLegacyConverter_cfi import tracksterSoAToLegacyConverter as _tracksterSoAToLegacyConverter
 
 # The layer clusters of all the HGCAL components, merged on the device by hgcalSoAMergeLayerClusters, are clustered
 # into tracksters with CLUEstering, and the tracksters are built on the device
@@ -17,7 +17,7 @@ ticlSoATracksters = _tracksterSoAProducer.clone(
 )
 
 # Conversion to legacy tracksters
-ticlTrackstersCLUEstering = _hgCalTrackstersFromSoAProducer.clone(
+ticlTrackstersCLUEstering = _tracksterSoAToLegacyConverter.clone(
     src = 'ticlSoATracksters',
     originalMask = 'hgcalMergeLayerClusters:InitialLayerClustersMask'
 )

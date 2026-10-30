@@ -19,9 +19,9 @@
 // Converts the tracksters built on the device to ticl::Trackster, in the same order, and masks their layer clusters
 // in a copy of the original layer cluster mask, as TrackstersProducer does. The layer clusters of the tracksters are
 // indices in the merged layer clusters, which index the same layer clusters as hgcalMergeLayerClusters.
-class HGCalTrackstersFromSoAProducer : public edm::global::EDProducer<> {
+class TracksterSoAToLegacyConverter : public edm::global::EDProducer<> {
 public:
-  HGCalTrackstersFromSoAProducer(const edm::ParameterSet& config)
+  TracksterSoAToLegacyConverter(const edm::ParameterSet& config)
       : tracksterSoAToken_(consumes(config.getParameter<edm::InputTag>("src"))),
         originalMaskToken_(consumes(config.getParameter<edm::InputTag>("originalMask"))),
         trackstersToken_(produces<std::vector<ticl::Trackster>>()),
@@ -44,7 +44,7 @@ public:
       for (const auto layerCluster : trackster.vertices()) {
         if (layerCluster >= mask.size()) {
           throw edm::Exception(edm::errors::LogicError)
-              << "HGCalTrackstersFromSoAProducer: a trackster uses layer cluster " << layerCluster << " of "
+              << "TracksterSoAToLegacyConverter: a trackster uses layer cluster " << layerCluster << " of "
               << mask.size() << ". The layer clusters must be merged on the device in the order of the legacy ones.";
         }
         mask[layerCluster] = 0.f;
@@ -92,4 +92,4 @@ private:
   const edm::EDPutTokenT<std::vector<float>> maskToken_;
 };
 
-DEFINE_FWK_MODULE(HGCalTrackstersFromSoAProducer);
+DEFINE_FWK_MODULE(TracksterSoAToLegacyConverter);
