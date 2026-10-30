@@ -37,4 +37,10 @@
   <class name="ticl::LayerClusterToTracksterHostCollection::Layout"/>
   <class name="ticl::LayerClusterToTracksterSoA::View"/>
   <class name="edm::Wrapper<ticl::LayerClusterToTracksterHostCollection>" splitLevel="0"/>
+
+  <!-- TracksterGroupHostCollection uses SoA blocks (AssociationMap), which the PortableHostCollection read rules do not
+       support yet; its sub-layouts are listed with the TracksterSoA vertices -->
+  <class name="ticl::TracksterGroupHostCollection" rntupleStreamerMode="true"/>
+  <class name="ticl::TracksterGroupSoA::View"/>
+  <class name="edm::Wrapper<ticl::TracksterGroupHostCollection>" splitLevel="0"/>
 </lcgdict>

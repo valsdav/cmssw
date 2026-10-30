@@ -4,3 +4,4 @@
 #include "DataFormats/TICL/interface/TracksterGraphHostCollection.h"
 #include "DataFormats/TICL/interface/TracksterGraphEdgeScoresHostCollection.h"
 #include "DataFormats/TICL/interface/LayerClusterToTracksterHostCollection.h"
+#include "DataFormats/TICL/interface/TracksterGroupHostCollection.h"
