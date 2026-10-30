@@ -6,7 +6,7 @@
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 #include "DataFormats/TICL/interface/alpaka/TracksterGraphDeviceCollection.h"
-#include "DataFormats/TICL/interface/alpaka/TracksterGraphEdgeScoreDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/TracksterGraphEdgeScoresDeviceCollection.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/FileInPath.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -60,7 +60,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     device::EDGetToken<ticl::TracksterDeviceCollection> const trackstersToken_;
     device::EDGetToken<ticl::TracksterBarrelPropertiesDeviceCollection> const propertiesToken_;
     device::EDGetToken<ticl::TracksterGraphDeviceCollection> const graphsToken_;
-    device::EDPutToken<ticl::TracksterGraphEdgeScoreDeviceCollection> const scoresToken_;
+    device::EDPutToken<ticl::TracksterGraphEdgeScoresDeviceCollection> const scoresToken_;
     torch::AlpakaModel model_;
     int const graphsPerBatch_;
     bool const applySigmoid_;
@@ -95,7 +95,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // the sizes of the graph blocks are known on the host: no synchronisation
     int32_t const nGraphs = graph.graphs().metadata().size();
     int32_t const nEdges = graph.edges().metadata().size();
-    ticl::TracksterGraphEdgeScoreDeviceCollection scores(queue, nEdges);
+    ticl::TracksterGraphEdgeScoresDeviceCollection scores(queue, nEdges);
     if (nEdges == 0) {
       iEvent.emplace(scoresToken_, std::move(scores));
       return;

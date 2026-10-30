@@ -20,11 +20,11 @@
 #include <alpaka/alpaka.hpp>
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
-#include "DataFormats/TICL/interface/TracksterGraphEdgeScoreHostCollection.h"
+#include "DataFormats/TICL/interface/TracksterGraphEdgeScoresHostCollection.h"
 #include "DataFormats/TICL/interface/TracksterGraphHostCollection.h"
 #include "DataFormats/TICL/interface/TracksterHostCollection.h"
 #include "DataFormats/TICL/interface/alpaka/TracksterGraphDeviceCollection.h"
-#include "DataFormats/TICL/interface/alpaka/TracksterGraphEdgeScoreDeviceCollection.h"
+#include "DataFormats/TICL/interface/alpaka/TracksterGraphEdgeScoresDeviceCollection.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/devices.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     alpaka::memcpy(queue, dGraph.buffer(), graph.const_buffer());
 
     // the produce() of TICLBarrelGraphEdgeScoreProducer
-    A::ticl::TracksterGraphEdgeScoreDeviceCollection scores(queue, nEdges);
+    A::ticl::TracksterGraphEdgeScoresDeviceCollection scores(queue, nEdges);
     std::deque<A::graphmodel::BatchIO> batches;
     if (nEdges > 0) {
       A::PortableCollection<::ticl::graphmodel::GraphModelInputSoA> inputs(queue, nGraphs);
@@ -100,13 +100,13 @@ int main(int argc, char** argv) {
       A::graphmodel::launchGatherEdgeScores(queue, dGraph.const_view(), outputs.const_view(), scores.view(), true);
       alpaka::wait(queue);
     }
-    ::ticl::TracksterGraphEdgeScoreHostCollection hostScores(queue, nEdges);
+    ::ticl::TracksterGraphEdgeScoresHostCollection hostScores(queue, nEdges);
     alpaka::memcpy(queue, hostScores.buffer(), scores.const_buffer());
     alpaka::wait(queue);
 
     std::printf("EVENT");
     for (int32_t e = 0; e < nEdges; ++e)
-      std::printf(" %.9g", hostScores.view()[e].score());
+      std::printf(" %.9g", hostScores.view()[e].egmLinkingProbability());
     std::printf("\n");
   }
   return 0;

@@ -12,11 +12,11 @@
 //   GraphModelOutputSoA  (one row per graph)
 //        |  launchGatherEdgeScores
 //        v
-//   TracksterGraphEdgeScoreSoA (one row per edge, same order as the edges block)
+//   TracksterGraphEdgeScoresSoA (one row per edge, same order as the edges block)
 
 // TracksterDeviceCollection.h includes Eigen, which must precede the other SoA headers
 #include "DataFormats/TICL/interface/alpaka/TracksterDeviceCollection.h"
-#include "DataFormats/TICL/interface/TracksterGraphEdgeScoreSoA.h"
+#include "DataFormats/TICL/interface/TracksterGraphEdgeScoresSoA.h"
 #include "DataFormats/TICL/interface/TracksterGraphSoA.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "RecoTICL/Superclustering/interface/TracksterGraphEdgeModelSoA.h"
@@ -42,7 +42,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::graphmodel {
   void launchGatherEdgeScores(Queue& queue,
                               ::ticl::TracksterGraphSoAConstView graph,
                               ::ticl::graphmodel::GraphModelOutputSoA::ConstView outputs,
-                              ::ticl::TracksterGraphEdgeScoreSoA::View scores,
+                              ::ticl::TracksterGraphEdgeScoresSoA::View scores,
                               bool applySigmoid);
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::graphmodel

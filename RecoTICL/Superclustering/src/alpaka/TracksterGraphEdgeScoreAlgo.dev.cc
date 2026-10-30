@@ -80,18 +80,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::graphmodel {
       ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                     ::ticl::TracksterGraphSoAConstView graph,
                                     GraphModelOutputSoA::ConstView outputs,
-                                    ::ticl::TracksterGraphEdgeScoreSoA::View scores,
+                                    ::ticl::TracksterGraphEdgeScoresSoA::View scores,
                                     bool applySigmoid) const {
         auto const graphs = graph.graphs();
         auto const edges = graph.edges();
         for (int32_t e : uniform_elements(acc, edges.metadata().size())) {
           int32_t const g = edges[e].graphIdx();
           if (graphs[g].nNodes() > kMaxNodes) {
-            scores[e].score() = -1.f;
+            scores[e].egmLinkingProbability() = -1.f;
             continue;
           }
           float const logit = outputs[g].pairLogits()(edges[e].localA(), edges[e].localB());
-          scores[e].score() = applySigmoid ? 1.f / (1.f + xtd::exp(-logit)) : logit;
+          scores[e].egmLinkingProbability() = applySigmoid ? 1.f / (1.f + xtd::exp(-logit)) : logit;
         }
       }
     };
@@ -124,7 +124,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::graphmodel {
   void launchGatherEdgeScores(Queue& queue,
                               ::ticl::TracksterGraphSoAConstView graph,
                               GraphModelOutputSoA::ConstView outputs,
-                              ::ticl::TracksterGraphEdgeScoreSoA::View scores,
+                              ::ticl::TracksterGraphEdgeScoresSoA::View scores,
                               bool applySigmoid) {
     int32_t const nEdges = graph.edges().metadata().size();
     if (nEdges > 0)

@@ -48,7 +48,7 @@ def main():
     model = torch.jit.load(sys.argv[3]).eval()
     hT = Handle("std::vector<ticl::io_v1::Trackster>")
     hP = Handle("ticl::TracksterBarrelPropertiesHostCollection")
-    hS = Handle("ticl::TracksterGraphEdgeScoreHostCollection")
+    hS = Handle("ticl::TracksterGraphEdgeScoresHostCollection")
     n_events = n_good = 0
     for ev in Events(sys.argv[1]):
         aux = ev.eventAuxiliary()
@@ -61,7 +61,7 @@ def main():
         ev.getByLabel("ticlBarrelGraphEdgeScore", hS)
         G, N, E = job[key]
         scores = hS.product().const_view()
-        got = np.array([scores[e].score() for e in range(scores.metadata().size())], np.float32)
+        got = np.array([scores[e].egmLinkingProbability() for e in range(scores.metadata().size())], np.float32)
         expected = python_scores(model, node_features(event_columns(hT.product(), hP.product().const_view())),
                                  G, N, E)
         n_events += 1

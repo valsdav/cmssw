@@ -28,8 +28,8 @@
   <class name="ticl::TracksterGraphSoAEdges<128, false>"/>
   <class name="edm::Wrapper<ticl::TracksterGraphHostCollection>" splitLevel="0"/>
 
-  <class name="ticl::TracksterGraphEdgeScoreHostCollection" rntupleStreamerMode="true"/>
-  <class name="ticl::TracksterGraphEdgeScoreHostCollection::Layout"/>
-  <class name="ticl::TracksterGraphEdgeScoreSoA::View"/>
-  <class name="edm::Wrapper<ticl::TracksterGraphEdgeScoreHostCollection>" splitLevel="0"/>
+  <class name="ticl::TracksterGraphEdgeScoresHostCollection" rntupleStreamerMode="true"/>
+  <class name="ticl::TracksterGraphEdgeScoresHostCollection::Layout"/>
+  <class name="ticl::TracksterGraphEdgeScoresSoA::View"/>
+  <class name="edm::Wrapper<ticl::TracksterGraphEdgeScoresHostCollection>" splitLevel="0"/>
 </lcgdict>
