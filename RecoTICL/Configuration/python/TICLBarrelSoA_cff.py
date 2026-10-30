@@ -5,6 +5,7 @@ from RecoTICL.PatternRecognition.tracksterSoAProducer_cfi import tracksterSoAPro
 from RecoTICL.PatternRecognition.tracksterToSoAConverter_cfi import tracksterToSoAConverter as _tracksterToSoAConverter
 from RecoTICL.Superclustering.tracksterBarrelPropertiesProducer_cfi import tracksterBarrelPropertiesProducer as _tracksterBarrelPropertiesProducer
 from RecoTICL.Superclustering.tracksterGraphProducer_cfi import tracksterGraphProducer as _tracksterGraphProducer
+from RecoTICL.Superclustering.ticlBarrelGraphEdgeScoreProducer_cfi import ticlBarrelGraphEdgeScoreProducer as _ticlBarrelGraphEdgeScoreProducer
 
 # The legacy CLUE3D barrel tracksters and the legacy merged layer clusters are copied to the SoA, and the ECAL and
 # HCAL properties of the barrel tracksters are computed on the device
@@ -34,6 +35,18 @@ ticlBarrelSoAFromLegacyTask = cms.Task(ticlTrackstersSoACLUE3DBarrel
     ,ticlLayerClustersSoA
     ,ticlTracksterBarrelProperties
     ,ticlTracksterGraph)
+
+# One score per graph edge, from the graph edge model. In its own task: it needs the model file and the
+# PyTorchService (process.add_(cms.Service("PyTorchService"))). The model is exported with
+# ticl-egm-linking/scripts/export_cmssw.py; there is no trained model in the release yet.
+ticlBarrelGraphEdgeScore = _ticlBarrelGraphEdgeScoreProducer.clone(
+    tracksters = 'ticlTrackstersSoACLUE3DBarrel',
+    barrelProperties = 'ticlTracksterBarrelProperties',
+    graphs = 'ticlTracksterGraph',
+    model = cms.FileInPath('RecoTICL/Superclustering/data/TICLBarrelGraphEdgeModel.pt')
+)
+
+ticlBarrelGraphEdgeScoreTask = cms.Task(ticlBarrelGraphEdgeScore)
 
 # The barrel tracksters built on the device, from the barrel layer clusters on the device and their clustering. These
 # are not produced yet: set the two inputs to them, and the inputs of ticlTracksterBarrelProperties to this module and
