@@ -68,10 +68,19 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::graphmodel {
       }
     };
 
+    // Graphs with links, so that the JIT profiles the edge head on the path and the shapes of real events. The features
+    // stay 0 from the memset: the values do not change the operations.
     struct KernelFillWarmup {
+      static constexpr int32_t kNodes = 4;
       ALPAKA_FN_ACC void operator()(Acc1D const& acc, GraphModelInputSoA::View inputs) const {
-        for (int32_t g : uniform_elements(acc, inputs.metadata().size()))
-          inputs[g].adjacency()(0, 0) = 1.f;
+        for (int32_t g : uniform_elements(acc, inputs.metadata().size())) {
+          auto adjacency = inputs[g].adjacency();
+          for (int32_t i = 0; i < kNodes; ++i) {
+            adjacency(i, i) = 1.f;
+            if (i > 0)
+              adjacency(i, i - 1) = adjacency(i - 1, i) = 1.f;
+          }
+        }
       }
     };
 
